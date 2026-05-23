@@ -17,24 +17,48 @@ class WorkflowTestRunResults
 
     /**
      * List Test Execution Results
+     *
+     * List workflow test results for a single run, page by page.
+     *
+     * Pagination strategy: the parent
+     * ``workflow_test_runs.result_run_record_ids`` document already holds the
+     * ordered list of child record IDs. ``workflow_block_test_runs`` rows do
+     * not carry a ``run_id`` field (the relationship lives only on the
+     * parent), so a direct keyset query on the child collection is not
+     * possible without a schema change. We slice the parent's ordered list to
+     * resolve cursors and then ``$in``-query the child collection for only
+     * the requested page — preserving the run-time ordering encoded in the
+     * parent doc and avoiding a fan-out collection scan.
      * @param string $runId
-     * @return list<\Retab\Resource\WorkflowTestResult>
+     * @param string|null $before
+     * @param string|null $after
+     * @param int|null $limit Defaults to 20.
+     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
+     * @return \Retab\PaginatedResponse<\Retab\Resource\WorkflowTestResult>
      * @throws \Retab\Exception\RetabException
      */
     public function list(
         string $runId,
+        ?string $before = null,
+        ?string $after = null,
+        ?int $limit = null,
+        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
         ?\Retab\RequestOptions $options = null,
-    ): array {
-        $query = [
+    ): \Retab\PaginatedResponse {
+        $query = array_filter([
             'run_id' => $runId,
-        ];
-        $response = $this->client->request(
+            'before' => $before,
+            'after' => $after,
+            'limit' => $limit,
+            'order' => $order->value,
+        ], fn ($v) => $v !== null);
+        return $this->client->requestPage(
             method: 'GET',
             path: 'v1/workflows/tests/results',
             query: $query,
+            modelClass: WorkflowTestResult::class,
             options: $options,
         );
-        return array_map(fn ($item) => WorkflowTestResult::fromArray($item), $response['data'] ?? []);
     }
 
     /**

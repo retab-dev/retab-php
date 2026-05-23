@@ -202,15 +202,18 @@ class Workflows
      * This creates an immutable snapshot of the workflow configuration, making it available for workflow runs.
      * The live entities remain unchanged so users can continue editing.
      * @param string $workflowId
+     * @param string|null $description Optional description for this published version
      * @return \Retab\Resource\Workflow
      * @throws \Retab\Exception\RetabException
      */
     public function publish(
         string $workflowId,
+        ?string $description = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\Workflow {
-        $body = [
-        ];
+        $body = array_filter([
+            'description' => $description,
+        ], fn ($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/workflows/' . rawurlencode($workflowId) . '/publish',

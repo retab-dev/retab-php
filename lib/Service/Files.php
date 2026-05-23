@@ -27,7 +27,7 @@ class Files
      * @return \Retab\Resource\CreateUploadResponse
      * @throws \Retab\Exception\RetabException
      */
-    public function upload(
+    public function createUpload(
         string $filename,
         int $sizeBytes,
         ?string $contentType = null,

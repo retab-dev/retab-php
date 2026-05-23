@@ -86,14 +86,26 @@ class WorkflowTestRuns
      *
      * Scoping identity comes from the body — ``workflow_id`` and/or
      * ``test_id`` per ``CreateWorkflowTestRunRequest``.
+     * @param string|null $testId
+     * @param string|null $workflowId
+     * @param int|null $nConsensus
+     * @param \Retab\Resource\WorkflowTestBlockTarget|null $target
      * @return \Retab\Resource\WorkflowTestRun
      * @throws \Retab\Exception\RetabException
      */
     public function create(
+        ?string $testId = null,
+        ?string $workflowId = null,
+        ?int $nConsensus = null,
+        ?\Retab\Resource\WorkflowTestBlockTarget $target = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\WorkflowTestRun {
-        $body = [
-        ];
+        $body = array_filter([
+            'test_id' => $testId,
+            'workflow_id' => $workflowId,
+            'n_consensus' => $nConsensus,
+            'target' => $target,
+        ], fn ($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/workflows/tests/runs',

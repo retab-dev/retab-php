@@ -38,29 +38,64 @@ final class PaginatedResponse implements \IteratorAggregate, \Countable
     }
 
     /**
-     * Iterate the current page only. Pagination across pages is the caller's
-     * responsibility — call `nextPage()` to walk forward explicitly. Keeping
-     * iteration to a single page matches the wire shape and avoids surprising
-     * implicit HTTP calls inside `foreach` loops.
+     * `true` when the server advertised a non-null `after` cursor on the
+     * current page, i.e. there's a follow-up page available.
+     */
+    public function hasMore(): bool
+    {
+        $after = $this->listMetadata['after'] ?? null;
+        return is_string($after) && $after !== '';
+    }
+
+    /**
+     * Auto-paginating iterator. Yields every item on the current page, then
+     * — if the page advertises a non-null `after` cursor and a fetch
+     * closure is wired in — fetches the next page and recursively walks it
+     * via `yield from`. Matches the cross-language pagination contract in
+     * `.notes/blueprints/sdk-pagination-contract.md`: a caller writing
+     * `foreach ($client->workflows()->list() as $workflow) { ... }`
+     * transparently walks the entire collection.
+     *
+     * When `fetchNext` is null — e.g. this page was reconstructed from a
+     * stored fixture rather than a live `.list()` call — iteration stops
+     * silently after the current page. That's the same forgiving behavior
+     * the Python, Node, and Go SDKs implement.
      *
      * @return \Generator<int, T>
      */
     public function getIterator(): \Generator
     {
-        foreach ($this->data as $i => $item) {
-            yield $i => $item;
+        yield from $this->data;
+
+        if ($this->fetchNext === null || !$this->hasMore()) {
+            return;
         }
+
+        $after = $this->listMetadata['after'];
+        // `hasMore()` already asserts the cursor is a non-empty string;
+        // the explicit type check keeps PHPStan happy without weakening it.
+        if (!is_string($after) || $after === '') {
+            return;
+        }
+
+        $next = ($this->fetchNext)($after);
+        yield from $next;
     }
 
     /**
      * Fetch the next page if a cursor is available, otherwise return null.
+     * Retained as an escape hatch for callers that want to walk pages
+     * explicitly without the auto-paginating iterator.
      *
      * @return self<T>|null
      */
     public function nextPage(): ?self
     {
-        $after = $this->listMetadata['after'] ?? null;
-        if ($after === null || $this->fetchNext === null) {
+        if (!$this->hasMore() || $this->fetchNext === null) {
+            return null;
+        }
+        $after = $this->listMetadata['after'];
+        if (!is_string($after) || $after === '') {
             return null;
         }
         return ($this->fetchNext)($after);

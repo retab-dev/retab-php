@@ -101,14 +101,35 @@ class WorkflowRuns
      *
      * The shape of the request enforces these invariants — see
      * ``CreateWorkflowRunRequest``.
+     * @param string|null $workflowId Workflow id for the fresh run.
+     * @param array<string, \Retab\Resource\FileRef|\Retab\Resource\MimeDataInput>|null $documents Mapping of start_document block IDs to their input documents. Only valid for fresh-run creation (``restart_of`` is None).
+     * @param array<string, mixed>|null $jsonInputs Mapping of start-json block IDs to their input JSON data. Only valid for fresh-run creation (``restart_of`` is None).
+     * @param string|null $version Workflow version to run: 'production', 'draft', or a pinned version id like 'ver_...'. Only valid for fresh-run creation.
+     * @param string|null $restartOf When present, the new run is created as a restart of this source run id (the source run's inputs are inherited).
+     * @param \Retab\Resource\CreateRestartWorkflowRunRequestConfigSource|null $configSource Required when ``restart_of`` is set. Config source for the restarted run.
+     * @param string|null $commandId Optional idempotency key for deduplicating restart commands. Only valid when ``restart_of`` is set.
      * @return \Retab\Resource\WorkflowRun
      * @throws \Retab\Exception\RetabException
      */
     public function create(
+        ?string $workflowId = null,
+        ?array $documents = null,
+        ?array $jsonInputs = null,
+        ?string $version = null,
+        ?string $restartOf = null,
+        ?\Retab\Resource\CreateRestartWorkflowRunRequestConfigSource $configSource = null,
+        ?string $commandId = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\WorkflowRun {
-        $body = [
-        ];
+        $body = array_filter([
+            'workflow_id' => $workflowId,
+            'documents' => $documents,
+            'json_inputs' => $jsonInputs,
+            'version' => $version,
+            'restart_of' => $restartOf,
+            'config_source' => $configSource?->value,
+            'command_id' => $commandId,
+        ], fn ($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/workflows/runs',
@@ -225,15 +246,18 @@ class WorkflowRuns
      *
      * Cancel a pending, running, or waiting workflow run.
      * @param string $runId
+     * @param string|null $commandId Optional idempotency key for deduplicating cancel commands
      * @return \Retab\Resource\CancelWorkflowResponse
      * @throws \Retab\Exception\RetabException
      */
     public function cancel(
         string $runId,
+        ?string $commandId = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\CancelWorkflowResponse {
-        $body = [
-        ];
+        $body = array_filter([
+            'command_id' => $commandId,
+        ], fn ($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/workflows/runs/' . rawurlencode($runId) . '/cancel',

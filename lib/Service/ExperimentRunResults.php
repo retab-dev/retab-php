@@ -18,26 +18,35 @@ class ExperimentRunResults
     /**
      * List Experiment Results
      * @param string $runId
+     * @param string|null $before
+     * @param string|null $after
      * @param int|null $limit Defaults to 100.
-     * @return list<\Retab\Resource\ExperimentResult>
+     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
+     * @return \Retab\PaginatedResponse<\Retab\Resource\ExperimentResult>
      * @throws \Retab\Exception\RetabException
      */
     public function list(
         string $runId,
+        ?string $before = null,
+        ?string $after = null,
         ?int $limit = null,
+        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
         ?\Retab\RequestOptions $options = null,
-    ): array {
+    ): \Retab\PaginatedResponse {
         $query = array_filter([
             'run_id' => $runId,
+            'before' => $before,
+            'after' => $after,
             'limit' => $limit,
+            'order' => $order->value,
         ], fn ($v) => $v !== null);
-        $response = $this->client->request(
+        return $this->client->requestPage(
             method: 'GET',
             path: 'v1/workflows/experiments/results',
             query: $query,
+            modelClass: ExperimentResult::class,
             options: $options,
         );
-        return array_map(fn ($item) => ExperimentResult::fromArray($item), $response['data'] ?? []);
     }
 
     /**

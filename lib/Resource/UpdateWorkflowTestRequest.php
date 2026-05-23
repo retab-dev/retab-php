@@ -23,7 +23,7 @@ readonly class UpdateWorkflowTestRequest implements \JsonSerializable
         return new self(
             name: $data['name'] ?? null,
             assertion: isset($data['assertion']) ? AssertionSpec::fromArray($data['assertion']) : null,
-            source: $data['source'] ?? null,
+            source: isset($data['source']) ? match ($data['source']['type'] ?? null) { 'manual' => ManualWorkflowTestSource::fromArray($data['source']), 'run_step' => RunStepWorkflowTestSource::fromArray($data['source']), default => throw new \UnexpectedValueException(sprintf('Unknown type: %s', json_encode($data['source']['type'] ?? null))) } : null,
         );
     }
 

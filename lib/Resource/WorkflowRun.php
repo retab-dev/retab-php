@@ -44,7 +44,7 @@ readonly class WorkflowRun implements \JsonSerializable
             id: $data['id'],
             workflow: WorkflowSnapshotRef::fromArray($data['workflow']),
             trigger: match ($data['trigger']['type'] ?? null) { 'api' => ApiTrigger::fromArray($data['trigger']), 'email' => EmailTrigger::fromArray($data['trigger']), 'manual' => ManualTrigger::fromArray($data['trigger']), 'restart' => RestartTrigger::fromArray($data['trigger']), 'schedule' => ScheduleTrigger::fromArray($data['trigger']), 'webhook' => WebhookTrigger::fromArray($data['trigger']), default => throw new \UnexpectedValueException(sprintf('Unknown type: %s', json_encode($data['trigger']['type'] ?? null))) },
-            lifecycle: $data['lifecycle'] ?? null,
+            lifecycle: isset($data['lifecycle']) ? match ($data['lifecycle']['status'] ?? null) { 'awaiting_review' => AwaitingReviewRun::fromArray($data['lifecycle']), 'cancelled' => CancelledTerminal::fromArray($data['lifecycle']), 'completed' => CompletedTerminal::fromArray($data['lifecycle']), 'error' => ErrorTerminal::fromArray($data['lifecycle']), 'pending' => PendingRun::fromArray($data['lifecycle']), 'running' => RunningRun::fromArray($data['lifecycle']), default => throw new \UnexpectedValueException(sprintf('Unknown status: %s', json_encode($data['lifecycle']['status'] ?? null))) } : null,
             timing: isset($data['timing']) ? RunTiming::fromArray($data['timing']) : null,
             inputs: isset($data['inputs']) ? RunInputs::fromArray($data['inputs']) : null,
         );

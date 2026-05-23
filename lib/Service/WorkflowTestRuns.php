@@ -28,7 +28,6 @@ class WorkflowTestRuns
      * @param \DateTimeImmutable|null $fromDate
      * @param \DateTimeImmutable|null $toDate
      * @param string|null $sortBy Defaults to "created_at".
-     * @param string|null $fields
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Defaults to 50.
@@ -48,7 +47,6 @@ class WorkflowTestRuns
         ?\DateTimeImmutable $fromDate = null,
         ?\DateTimeImmutable $toDate = null,
         ?string $sortBy = null,
-        ?string $fields = null,
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
@@ -67,7 +65,6 @@ class WorkflowTestRuns
             'from_date' => $fromDate,
             'to_date' => $toDate,
             'sort_by' => $sortBy,
-            'fields' => $fields,
             'before' => $before,
             'after' => $after,
             'limit' => $limit,

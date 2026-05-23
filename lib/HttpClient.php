@@ -99,7 +99,12 @@ final class HttpClient
 
         $request = ['headers' => $headers, 'timeout' => $effectiveTimeout];
         if ($body !== null) {
-            $request['json'] = $body;
+            // PHP `json_encode([])` renders as `[]` (array) — FastAPI rejects
+            // that with "Input should be a valid dictionary or object" when
+            // the endpoint expects an object body. Coerce empty assoc arrays
+            // to stdClass so they serialise as `{}`. Non-empty arrays keep
+            // their natural list-vs-hash inference.
+            $request['json'] = $body === [] ? new \stdClass() : $body;
             $headers['Content-Type'] = 'application/json';
             $request['headers'] = $headers;
         }

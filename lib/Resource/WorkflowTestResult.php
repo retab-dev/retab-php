@@ -48,7 +48,7 @@ readonly class WorkflowTestResult implements \JsonSerializable
             target: WorkflowTestBlockTarget::fromArray($data['target']),
             source: match ($data['source']['type'] ?? null) { 'manual' => ManualWorkflowTestSource::fromArray($data['source']), 'run_step' => RunStepWorkflowTestSource::fromArray($data['source']), default => throw new \UnexpectedValueException(sprintf('Unknown type: %s', json_encode($data['source']['type'] ?? null))) },
             runId: $data['run_id'] ?? null,
-            lifecycle: $data['lifecycle'] ?? null,
+            lifecycle: isset($data['lifecycle']) ? match ($data['lifecycle']['status'] ?? null) { 'cancelled' => CancelledWorkflowTestRun::fromArray($data['lifecycle']), 'completed' => CompletedWorkflowTestRun::fromArray($data['lifecycle']), 'error' => ErrorWorkflowTestRun::fromArray($data['lifecycle']), 'pending' => PendingWorkflowTestRun::fromArray($data['lifecycle']), 'queued' => QueuedWorkflowTestRun::fromArray($data['lifecycle']), 'running' => RunningWorkflowTestRun::fromArray($data['lifecycle']), default => throw new \UnexpectedValueException(sprintf('Unknown status: %s', json_encode($data['lifecycle']['status'] ?? null))) } : null,
             timing: isset($data['timing']) ? WorkflowTestRunTiming::fromArray($data['timing']) : null,
             verdict: isset($data['verdict']) ? AssertionOutcome::from($data['verdict']) : null,
             executionFingerprint: $data['execution_fingerprint'] ?? null,

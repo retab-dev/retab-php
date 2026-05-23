@@ -25,6 +25,14 @@ readonly class UploadFileRequest implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'filename',
+            'size_bytes',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for UploadFileRequest::fromArray()");
+            }
+        }
         return new self(
             filename: $data['filename'],
             sizeBytes: $data['size_bytes'],

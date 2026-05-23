@@ -28,6 +28,20 @@ readonly class DeclarativePlanResourceChange implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'address',
+            'target',
+            'target_id',
+            'name',
+            'type',
+            'actions',
+            'summary',
+            'change',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for DeclarativePlanResourceChange::fromArray()");
+            }
+        }
         return new self(
             address: $data['address'],
             target: DeclarativePlanResourceChangeTarget::from($data['target']),

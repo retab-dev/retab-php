@@ -38,6 +38,15 @@ readonly class AssertionResult implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'assertion_id',
+            'condition_kind',
+            'outcome',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for AssertionResult::fromArray()");
+            }
+        }
         return new self(
             assertionId: $data['assertion_id'],
             conditionKind: $data['condition_kind'],

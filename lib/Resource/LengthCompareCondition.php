@@ -13,17 +13,25 @@ readonly class LengthCompareCondition implements \JsonSerializable
     public function __construct(
         public LengthCompareConditionOp $op,
         public int $expected,
-        public ?string $kind = null,
+        public string $kind = 'length_compare',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'op',
+            'expected',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for LengthCompareCondition::fromArray()");
+            }
+        }
         return new self(
             op: LengthCompareConditionOp::from($data['op']),
             expected: $data['expected'],
-            kind: $data['kind'] ?? null,
+            kind: $data['kind'] ?? 'length_compare',
         );
     }
 

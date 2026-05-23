@@ -23,6 +23,13 @@ readonly class CancelWorkflowResponse implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'run',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for CancelWorkflowResponse::fromArray()");
+            }
+        }
         return new self(
             run: WorkflowRun::fromArray($data['run']),
             redisAvailable: $data['redis_available'] ?? null,

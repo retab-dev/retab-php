@@ -42,13 +42,25 @@ readonly class ExtractionWorkflowArtifact implements \JsonSerializable
         /** Usage information for the extraction */
         public ?RetabUsage $usage = null,
         /** Artifact operation that determines the backing record type */
-        public ?string $operation = null,
+        public string $operation = 'extraction',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'id',
+            'file',
+            'model',
+            'json_schema',
+            'output',
+            'created_at',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ExtractionWorkflowArtifact::fromArray()");
+            }
+        }
         return new self(
             id: $data['id'],
             file: FileRef::fromArray($data['file']),
@@ -62,7 +74,7 @@ readonly class ExtractionWorkflowArtifact implements \JsonSerializable
             consensus: isset($data['consensus']) ? ExtractionConsensus::fromArray($data['consensus']) : null,
             metadata: $data['metadata'] ?? null,
             usage: isset($data['usage']) ? RetabUsage::fromArray($data['usage']) : null,
-            operation: $data['operation'] ?? null,
+            operation: $data['operation'] ?? 'extraction',
         );
     }
 

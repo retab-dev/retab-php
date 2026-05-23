@@ -19,25 +19,34 @@ readonly class ExperimentMetricsStaleError implements \JsonSerializable
         public string $experimentId,
         public MetricsStaleErrorLastRun $lastRun,
         public string $message,
-        public ?string $kind = null,
-        public ?string $error = null,
         /** @var array<string>|null */
         public ?array $staleReasons = null,
         public ?string $currentConfigFingerprint = null,
+        public string $kind = 'stale_metrics',
+        public string $error = 'stale_metrics',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'experiment_id',
+            'last_run',
+            'message',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ExperimentMetricsStaleError::fromArray()");
+            }
+        }
         return new self(
             experimentId: $data['experiment_id'],
             lastRun: MetricsStaleErrorLastRun::fromArray($data['last_run']),
             message: $data['message'],
-            kind: $data['kind'] ?? null,
-            error: $data['error'] ?? null,
             staleReasons: $data['stale_reasons'] ?? null,
             currentConfigFingerprint: $data['current_config_fingerprint'] ?? null,
+            kind: $data['kind'] ?? 'stale_metrics',
+            error: $data['error'] ?? 'stale_metrics',
         );
     }
 
@@ -48,10 +57,10 @@ readonly class ExperimentMetricsStaleError implements \JsonSerializable
             'experiment_id' => $this->experimentId,
             'last_run' => $this->lastRun->toArray(),
             'message' => $this->message,
-            'kind' => $this->kind,
-            'error' => $this->error,
             'stale_reasons' => $this->staleReasons,
             'current_config_fingerprint' => $this->currentConfigFingerprint,
+            'kind' => $this->kind,
+            'error' => $this->error,
         ];
     }
 }

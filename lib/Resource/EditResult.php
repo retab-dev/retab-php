@@ -24,6 +24,14 @@ readonly class EditResult implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'form_data',
+            'filled_document',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for EditResult::fromArray()");
+            }
+        }
         return new self(
             formData: array_map(fn ($item) => FormField::fromArray($item), $data['form_data']),
             filledDocument: MimeData::fromArray($data['filled_document']),

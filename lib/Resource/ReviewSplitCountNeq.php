@@ -13,16 +13,23 @@ readonly class ReviewSplitCountNeq implements \JsonSerializable
 
     public function __construct(
         public int $expected,
-        public ?string $kind = null,
+        public string $kind = 'split_count_neq',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'expected',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ReviewSplitCountNeq::fromArray()");
+            }
+        }
         return new self(
             expected: $data['expected'],
-            kind: $data['kind'] ?? null,
+            kind: $data['kind'] ?? 'split_count_neq',
         );
     }
 

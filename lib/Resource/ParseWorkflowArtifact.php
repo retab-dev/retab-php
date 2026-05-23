@@ -30,13 +30,26 @@ readonly class ParseWorkflowArtifact implements \JsonSerializable
         /** Usage information for the parse operation */
         public ?RetabUsage $usage = null,
         /** Artifact operation that determines the backing record type */
-        public ?string $operation = null,
+        public string $operation = 'parse',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'id',
+            'file',
+            'model',
+            'table_parsing_format',
+            'image_resolution_dpi',
+            'output',
+            'created_at',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ParseWorkflowArtifact::fromArray()");
+            }
+        }
         return new self(
             id: $data['id'],
             file: FileRef::fromArray($data['file']),
@@ -47,7 +60,7 @@ readonly class ParseWorkflowArtifact implements \JsonSerializable
             createdAt: new \DateTimeImmutable($data['created_at']),
             instructions: $data['instructions'] ?? null,
             usage: isset($data['usage']) ? RetabUsage::fromArray($data['usage']) : null,
-            operation: $data['operation'] ?? null,
+            operation: $data['operation'] ?? 'parse',
         );
     }
 

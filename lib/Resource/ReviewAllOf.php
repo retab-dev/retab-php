@@ -14,16 +14,23 @@ readonly class ReviewAllOf implements \JsonSerializable
     public function __construct(
         /** @var array<\Retab\Resource\ReviewAlways|\Retab\Resource\ReviewValidationFailed|\Retab\Resource\ReviewConfidenceLt|\Retab\Resource\ReviewCategoryIn|\Retab\Resource\ReviewTopMarginLt|\Retab\Resource\ReviewSplitCountNeq|\Retab\Resource\ReviewAnySplitPagesLt|\Retab\Resource\ReviewBoundaryConfidenceLt|\Retab\Resource\ReviewAnyRequiredFieldNull|\Retab\Resource\ReviewFieldConfidenceLt|\Retab\Resource\ReviewJsonCondition|\Retab\Resource\ReviewBranchIn|\Retab\Resource\ReviewAnyOf|\Retab\Resource\ReviewAllOf> */
         public array $predicates,
-        public ?string $kind = null,
+        public string $kind = 'all_of',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'predicates',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ReviewAllOf::fromArray()");
+            }
+        }
         return new self(
             predicates: $data['predicates'],
-            kind: $data['kind'] ?? null,
+            kind: $data['kind'] ?? 'all_of',
         );
     }
 

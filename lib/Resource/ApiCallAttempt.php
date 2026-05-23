@@ -33,6 +33,15 @@ readonly class ApiCallAttempt implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'attempt_number',
+            'request_method',
+            'request_url',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ApiCallAttempt::fromArray()");
+            }
+        }
         return new self(
             attemptNumber: $data['attempt_number'],
             requestMethod: $data['request_method'],

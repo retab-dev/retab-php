@@ -14,16 +14,23 @@ readonly class ReviewCategoryIn implements \JsonSerializable
     public function __construct(
         /** @var array<string> */
         public array $categories,
-        public ?string $kind = null,
+        public string $kind = 'category_in',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'categories',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ReviewCategoryIn::fromArray()");
+            }
+        }
         return new self(
             categories: $data['categories'],
-            kind: $data['kind'] ?? null,
+            kind: $data['kind'] ?? 'category_in',
         );
     }
 

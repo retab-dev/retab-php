@@ -31,6 +31,13 @@ readonly class WorkflowDiagnosisResponse implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'is_valid',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for WorkflowDiagnosisResponse::fromArray()");
+            }
+        }
         return new self(
             isValid: $data['is_valid'],
             issues: isset($data['issues']) ? array_map(fn ($item) => WorkflowDiagnosisIssue::fromArray($item), $data['issues']) : null,

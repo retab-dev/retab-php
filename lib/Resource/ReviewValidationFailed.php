@@ -12,7 +12,7 @@ readonly class ReviewValidationFailed implements \JsonSerializable
     use JsonSerializableTrait;
 
     public function __construct(
-        public ?string $kind = null,
+        public string $kind = 'validation_failed',
     ) {
     }
 
@@ -20,7 +20,7 @@ readonly class ReviewValidationFailed implements \JsonSerializable
     public static function fromArray(array $data): self
     {
         return new self(
-            kind: $data['kind'] ?? null,
+            kind: $data['kind'] ?? 'validation_failed',
         );
     }
 

@@ -14,28 +14,36 @@ readonly class ExperimentByTargetMetricsResponse implements \JsonSerializable
     public function __construct(
         public string $runId,
         public string $target,
-        public ?string $kind = null,
-        public ?string $view = null,
         public ?float $score = null,
         public ?float $priorScore = null,
         public ?ExperimentTargetConfusionMetric $confusion = null,
         /** @var array<\Retab\Resource\ExperimentByTargetDocumentMetric>|null */
         public ?array $documents = null,
+        public string $kind = 'by_target',
+        public string $view = 'by_target',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'run_id',
+            'target',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ExperimentByTargetMetricsResponse::fromArray()");
+            }
+        }
         return new self(
             runId: $data['run_id'],
             target: $data['target'],
-            kind: $data['kind'] ?? null,
-            view: $data['view'] ?? null,
             score: $data['score'] ?? null,
             priorScore: $data['prior_score'] ?? null,
             confusion: isset($data['confusion']) ? ExperimentTargetConfusionMetric::fromArray($data['confusion']) : null,
             documents: isset($data['documents']) ? array_map(fn ($item) => ExperimentByTargetDocumentMetric::fromArray($item), $data['documents']) : null,
+            kind: $data['kind'] ?? 'by_target',
+            view: $data['view'] ?? 'by_target',
         );
     }
 
@@ -45,12 +53,12 @@ readonly class ExperimentByTargetMetricsResponse implements \JsonSerializable
         return [
             'run_id' => $this->runId,
             'target' => $this->target,
-            'kind' => $this->kind,
-            'view' => $this->view,
             'score' => $this->score,
             'prior_score' => $this->priorScore,
             'confusion' => $this->confusion?->toArray(),
             'documents' => $this->documents !== null ? array_map(fn ($item) => $item->toArray(), $this->documents) : null,
+            'kind' => $this->kind,
+            'view' => $this->view,
         ];
     }
 }

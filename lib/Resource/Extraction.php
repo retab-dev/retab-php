@@ -47,6 +47,17 @@ readonly class Extraction implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'id',
+            'file',
+            'model',
+            'json_schema',
+            'output',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for Extraction::fromArray()");
+            }
+        }
         return new self(
             id: $data['id'],
             file: FileRef::fromArray($data['file']),

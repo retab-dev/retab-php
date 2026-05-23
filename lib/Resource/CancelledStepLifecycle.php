@@ -14,16 +14,23 @@ readonly class CancelledStepLifecycle implements \JsonSerializable
     public function __construct(
         /** Reason the step was cancelled */
         public string $reason,
-        public ?string $status = null,
+        public string $status = 'cancelled',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'reason',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for CancelledStepLifecycle::fromArray()");
+            }
+        }
         return new self(
             reason: $data['reason'],
-            status: $data['status'] ?? null,
+            status: $data['status'] ?? 'cancelled',
         );
     }
 

@@ -34,6 +34,13 @@ readonly class ConditionEvaluationPerItem implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'index',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ConditionEvaluationPerItem::fromArray()");
+            }
+        }
         return new self(
             index: $data['index'],
             indices: $data['indices'] ?? null,

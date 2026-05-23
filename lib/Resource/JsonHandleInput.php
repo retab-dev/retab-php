@@ -12,8 +12,8 @@ readonly class JsonHandleInput implements \JsonSerializable
     use JsonSerializableTrait;
 
     public function __construct(
-        public ?string $type = null,
         public mixed $data = null,
+        public string $type = 'json',
     ) {
     }
 
@@ -21,8 +21,8 @@ readonly class JsonHandleInput implements \JsonSerializable
     public static function fromArray(array $data): self
     {
         return new self(
-            type: $data['type'] ?? null,
             data: $data['data'] ?? null,
+            type: $data['type'] ?? 'json',
         );
     }
 
@@ -30,8 +30,8 @@ readonly class JsonHandleInput implements \JsonSerializable
     public function toArray(): array
     {
         return [
-            'type' => $this->type,
             'data' => $this->data,
+            'type' => $this->type,
         ];
     }
 }

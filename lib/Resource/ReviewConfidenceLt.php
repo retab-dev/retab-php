@@ -19,16 +19,23 @@ readonly class ReviewConfidenceLt implements \JsonSerializable
     public function __construct(
         /** Gate fires when confidence < threshold */
         public float $threshold,
-        public ?string $kind = null,
+        public string $kind = 'confidence_lt',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'threshold',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ReviewConfidenceLt::fromArray()");
+            }
+        }
         return new self(
             threshold: $data['threshold'],
-            kind: $data['kind'] ?? null,
+            kind: $data['kind'] ?? 'confidence_lt',
         );
     }
 

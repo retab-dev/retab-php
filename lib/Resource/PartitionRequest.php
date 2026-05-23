@@ -32,6 +32,15 @@ readonly class PartitionRequest implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'document',
+            'key',
+            'instructions',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for PartitionRequest::fromArray()");
+            }
+        }
         return new self(
             document: $data['document'],
             key: $data['key'],

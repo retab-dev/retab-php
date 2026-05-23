@@ -20,8 +20,6 @@ readonly class ExperimentSummaryMetricsResponse implements \JsonSerializable
         public string $experimentId,
         public string $runId,
         public ReviewBlockType $blockType,
-        public ?string $kind = null,
-        public ?string $view = null,
         public ?string $definitionFingerprint = null,
         public ?float $score = null,
         public ?float $priorScore = null,
@@ -29,24 +27,35 @@ readonly class ExperimentSummaryMetricsResponse implements \JsonSerializable
         public ?array $documents = null,
         public ExperimentExtractSummaryAggregate|ExperimentConfusionSummaryAggregate|null $aggregate = null,
         public ?string $priorRunId = null,
+        public string $kind = 'summary',
+        public string $view = 'summary',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'experiment_id',
+            'run_id',
+            'block_type',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ExperimentSummaryMetricsResponse::fromArray()");
+            }
+        }
         return new self(
             experimentId: $data['experiment_id'],
             runId: $data['run_id'],
             blockType: ReviewBlockType::from($data['block_type']),
-            kind: $data['kind'] ?? null,
-            view: $data['view'] ?? null,
             definitionFingerprint: $data['definition_fingerprint'] ?? null,
             score: $data['score'] ?? null,
             priorScore: $data['prior_score'] ?? null,
             documents: isset($data['documents']) ? array_map(fn ($item) => ExperimentSummaryMetricDocument::fromArray($item), $data['documents']) : null,
             aggregate: $data['aggregate'] ?? null,
             priorRunId: $data['prior_run_id'] ?? null,
+            kind: $data['kind'] ?? 'summary',
+            view: $data['view'] ?? 'summary',
         );
     }
 
@@ -57,14 +66,14 @@ readonly class ExperimentSummaryMetricsResponse implements \JsonSerializable
             'experiment_id' => $this->experimentId,
             'run_id' => $this->runId,
             'block_type' => $this->blockType->value,
-            'kind' => $this->kind,
-            'view' => $this->view,
             'definition_fingerprint' => $this->definitionFingerprint,
             'score' => $this->score,
             'prior_score' => $this->priorScore,
             'documents' => $this->documents !== null ? array_map(fn ($item) => $item->toArray(), $this->documents) : null,
             'aggregate' => $this->aggregate?->toArray(),
             'prior_run_id' => $this->priorRunId,
+            'kind' => $this->kind,
+            'view' => $this->view,
         ];
     }
 }

@@ -12,16 +12,23 @@ readonly class NotContainsCondition implements \JsonSerializable
 
     public function __construct(
         public mixed $expected,
-        public ?string $kind = null,
+        public string $kind = 'not_contains',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'expected',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for NotContainsCondition::fromArray()");
+            }
+        }
         return new self(
             expected: $data['expected'],
-            kind: $data['kind'] ?? null,
+            kind: $data['kind'] ?? 'not_contains',
         );
     }
 

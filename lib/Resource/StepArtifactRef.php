@@ -28,6 +28,14 @@ readonly class StepArtifactRef implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'operation',
+            'id',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for StepArtifactRef::fromArray()");
+            }
+        }
         return new self(
             operation: StepArtifactRefOperation::from($data['operation']),
             id: $data['id'],

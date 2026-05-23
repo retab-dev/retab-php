@@ -20,6 +20,13 @@ readonly class ExperimentDocumentCaptureRequest implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'workflow_run_id',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ExperimentDocumentCaptureRequest::fromArray()");
+            }
+        }
         return new self(
             workflowRunId: $data['workflow_run_id'],
             stepId: $data['step_id'] ?? null,

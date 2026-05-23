@@ -12,7 +12,7 @@ readonly class QueuedStepLifecycle implements \JsonSerializable
     use JsonSerializableTrait;
 
     public function __construct(
-        public ?string $status = null,
+        public string $status = 'queued',
     ) {
     }
 
@@ -20,7 +20,7 @@ readonly class QueuedStepLifecycle implements \JsonSerializable
     public static function fromArray(array $data): self
     {
         return new self(
-            status: $data['status'] ?? null,
+            status: $data['status'] ?? 'queued',
         );
     }
 

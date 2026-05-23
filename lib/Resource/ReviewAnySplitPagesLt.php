@@ -13,16 +13,23 @@ readonly class ReviewAnySplitPagesLt implements \JsonSerializable
 
     public function __construct(
         public int $minPages,
-        public ?string $kind = null,
+        public string $kind = 'any_split_pages_lt',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'min_pages',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ReviewAnySplitPagesLt::fromArray()");
+            }
+        }
         return new self(
             minPages: $data['min_pages'],
-            kind: $data['kind'] ?? null,
+            kind: $data['kind'] ?? 'any_split_pages_lt',
         );
     }
 

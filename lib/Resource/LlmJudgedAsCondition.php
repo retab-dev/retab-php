@@ -12,18 +12,25 @@ readonly class LlmJudgedAsCondition implements \JsonSerializable
 
     public function __construct(
         public string $rubric,
-        public ?string $kind = null,
         public ?string $expectedLabel = null,
+        public string $kind = 'llm_judged_as',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'rubric',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for LlmJudgedAsCondition::fromArray()");
+            }
+        }
         return new self(
             rubric: $data['rubric'],
-            kind: $data['kind'] ?? null,
             expectedLabel: $data['expected_label'] ?? null,
+            kind: $data['kind'] ?? 'llm_judged_as',
         );
     }
 
@@ -32,8 +39,8 @@ readonly class LlmJudgedAsCondition implements \JsonSerializable
     {
         return [
             'rubric' => $this->rubric,
-            'kind' => $this->kind,
             'expected_label' => $this->expectedLabel,
+            'kind' => $this->kind,
         ];
     }
 }

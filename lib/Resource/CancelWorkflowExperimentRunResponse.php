@@ -19,6 +19,14 @@ readonly class CancelWorkflowExperimentRunResponse implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'id',
+            'lifecycle',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for CancelWorkflowExperimentRunResponse::fromArray()");
+            }
+        }
         return new self(
             id: $data['id'],
             lifecycle: match ($data['lifecycle']['status'] ?? null) { 'cancelled' => CancelledWorkflowExperimentRun::fromArray($data['lifecycle']), 'completed' => CompletedWorkflowExperimentRun::fromArray($data['lifecycle']), 'error' => ErrorWorkflowExperimentRun::fromArray($data['lifecycle']), 'pending' => PendingWorkflowExperimentRun::fromArray($data['lifecycle']), 'queued' => QueuedWorkflowExperimentRun::fromArray($data['lifecycle']), 'running' => RunningWorkflowExperimentRun::fromArray($data['lifecycle']), default => throw new \UnexpectedValueException(sprintf('Unknown status: %s', json_encode($data['lifecycle']['status'] ?? null))) },

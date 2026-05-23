@@ -12,18 +12,25 @@ readonly class RunStepWorkflowTestSource implements \JsonSerializable
 
     public function __construct(
         public string $runId,
-        public ?string $type = null,
         public ?string $stepId = null,
+        public string $type = 'run_step',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'run_id',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for RunStepWorkflowTestSource::fromArray()");
+            }
+        }
         return new self(
             runId: $data['run_id'],
-            type: $data['type'] ?? null,
             stepId: $data['step_id'] ?? null,
+            type: $data['type'] ?? 'run_step',
         );
     }
 
@@ -32,8 +39,8 @@ readonly class RunStepWorkflowTestSource implements \JsonSerializable
     {
         return [
             'run_id' => $this->runId,
-            'type' => $this->type,
             'step_id' => $this->stepId,
+            'type' => $this->type,
         ];
     }
 }

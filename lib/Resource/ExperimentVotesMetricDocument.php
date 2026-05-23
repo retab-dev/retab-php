@@ -20,6 +20,14 @@ readonly class ExperimentVotesMetricDocument implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'id',
+            'filename',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ExperimentVotesMetricDocument::fromArray()");
+            }
+        }
         return new self(
             id: $data['id'],
             filename: $data['filename'],

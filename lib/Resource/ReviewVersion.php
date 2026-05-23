@@ -28,6 +28,17 @@ readonly class ReviewVersion implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'id',
+            'review_id',
+            'author',
+            'snapshot',
+            'created_at',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ReviewVersion::fromArray()");
+            }
+        }
         return new self(
             id: $data['id'],
             reviewId: $data['review_id'],

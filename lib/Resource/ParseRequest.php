@@ -30,6 +30,13 @@ readonly class ParseRequest implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'document',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ParseRequest::fromArray()");
+            }
+        }
         return new self(
             document: $data['document'],
             model: $data['model'] ?? null,

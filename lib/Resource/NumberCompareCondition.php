@@ -13,17 +13,25 @@ readonly class NumberCompareCondition implements \JsonSerializable
     public function __construct(
         public LengthCompareConditionOp $op,
         public int|float $expected,
-        public ?string $kind = null,
+        public string $kind = 'number_compare',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'op',
+            'expected',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for NumberCompareCondition::fromArray()");
+            }
+        }
         return new self(
             op: LengthCompareConditionOp::from($data['op']),
             expected: $data['expected'],
-            kind: $data['kind'] ?? null,
+            kind: $data['kind'] ?? 'number_compare',
         );
     }
 

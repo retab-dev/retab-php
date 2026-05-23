@@ -23,6 +23,13 @@ readonly class VerdictSummary implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'result',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for VerdictSummary::fromArray()");
+            }
+        }
         return new self(
             result: $data['result'],
             assertionsPassed: $data['assertions_passed'] ?? null,

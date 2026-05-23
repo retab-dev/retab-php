@@ -25,6 +25,13 @@ readonly class GenerateSchemaRequest implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'documents',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for GenerateSchemaRequest::fromArray()");
+            }
+        }
         return new self(
             documents: array_map(fn ($item) => MimeData::fromArray($item), $data['documents']),
             model: $data['model'] ?? null,

@@ -22,6 +22,14 @@ readonly class JobError implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'code',
+            'message',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for JobError::fromArray()");
+            }
+        }
         return new self(
             code: $data['code'],
             message: $data['message'],

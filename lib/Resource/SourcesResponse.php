@@ -27,20 +27,31 @@ readonly class SourcesResponse implements \JsonSerializable
          * @var array<string, mixed>
          */
         public array $sources,
-        public ?string $object = null,
+        public string $object = 'extraction.sources',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'extraction_id',
+            'document_type',
+            'file',
+            'extraction',
+            'sources',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for SourcesResponse::fromArray()");
+            }
+        }
         return new self(
             extractionId: $data['extraction_id'],
             documentType: SourcesResponseDocumentType::from($data['document_type']),
             file: FileRef::fromArray($data['file']),
             extraction: $data['extraction'],
             sources: $data['sources'],
-            object: $data['object'] ?? null,
+            object: $data['object'] ?? 'extraction.sources',
         );
     }
 

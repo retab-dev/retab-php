@@ -24,16 +24,23 @@ readonly class ReviewJsonCondition implements \JsonSerializable
          * @var array<string, mixed>
          */
         public array $condition,
-        public ?string $kind = null,
+        public string $kind = 'json_condition',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'condition',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ReviewJsonCondition::fromArray()");
+            }
+        }
         return new self(
             condition: $data['condition'],
-            kind: $data['kind'] ?? null,
+            kind: $data['kind'] ?? 'json_condition',
         );
     }
 

@@ -20,6 +20,13 @@ readonly class ExplicitExperimentDocumentRequest implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'handle_inputs',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ExplicitExperimentDocumentRequest::fromArray()");
+            }
+        }
         return new self(
             handleInputs: $data['handle_inputs'],
             provenance: isset($data['provenance']) ? ExperimentDocumentProvenance::fromArray($data['provenance']) : null,

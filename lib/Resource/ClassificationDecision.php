@@ -21,6 +21,14 @@ readonly class ClassificationDecision implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'reasoning',
+            'category',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ClassificationDecision::fromArray()");
+            }
+        }
         return new self(
             reasoning: $data['reasoning'],
             category: $data['category'],

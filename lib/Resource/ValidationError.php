@@ -24,6 +24,15 @@ readonly class ValidationError implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'loc',
+            'msg',
+            'type',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ValidationError::fromArray()");
+            }
+        }
         return new self(
             loc: $data['loc'],
             msg: $data['msg'],

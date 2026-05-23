@@ -13,19 +13,27 @@ readonly class BetweenCondition implements \JsonSerializable
     public function __construct(
         public int|float $lower,
         public int|float $upper,
-        public ?string $kind = null,
         public ?bool $inclusive = null,
+        public string $kind = 'between',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'lower',
+            'upper',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for BetweenCondition::fromArray()");
+            }
+        }
         return new self(
             lower: $data['lower'],
             upper: $data['upper'],
-            kind: $data['kind'] ?? null,
             inclusive: $data['inclusive'] ?? null,
+            kind: $data['kind'] ?? 'between',
         );
     }
 
@@ -35,8 +43,8 @@ readonly class BetweenCondition implements \JsonSerializable
         return [
             'lower' => $this->lower,
             'upper' => $this->upper,
-            'kind' => $this->kind,
             'inclusive' => $this->inclusive,
+            'kind' => $this->kind,
         ];
     }
 }

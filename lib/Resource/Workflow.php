@@ -40,6 +40,15 @@ readonly class Workflow implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'id',
+            'created_at',
+            'updated_at',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for Workflow::fromArray()");
+            }
+        }
         return new self(
             id: $data['id'],
             createdAt: new \DateTimeImmutable($data['created_at']),

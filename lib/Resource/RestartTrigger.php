@@ -14,16 +14,23 @@ readonly class RestartTrigger implements \JsonSerializable
     public function __construct(
         /** ID of the parent run that was restarted */
         public string $parentRunId,
-        public ?string $type = null,
+        public string $type = 'restart',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'parent_run_id',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for RestartTrigger::fromArray()");
+            }
+        }
         return new self(
             parentRunId: $data['parent_run_id'],
-            type: $data['type'] ?? null,
+            type: $data['type'] ?? 'restart',
         );
     }
 

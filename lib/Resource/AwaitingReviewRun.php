@@ -12,12 +12,12 @@ readonly class AwaitingReviewRun implements \JsonSerializable
     use JsonSerializableTrait;
 
     public function __construct(
-        public ?string $status = null,
         /**
          * Block IDs that are waiting for review
          * @var array<string>|null
          */
         public ?array $waitingForBlockIds = null,
+        public string $status = 'awaiting_review',
     ) {
     }
 
@@ -25,8 +25,8 @@ readonly class AwaitingReviewRun implements \JsonSerializable
     public static function fromArray(array $data): self
     {
         return new self(
-            status: $data['status'] ?? null,
             waitingForBlockIds: $data['waiting_for_block_ids'] ?? null,
+            status: $data['status'] ?? 'awaiting_review',
         );
     }
 
@@ -34,8 +34,8 @@ readonly class AwaitingReviewRun implements \JsonSerializable
     public function toArray(): array
     {
         return [
-            'status' => $this->status,
             'waiting_for_block_ids' => $this->waitingForBlockIds,
+            'status' => $this->status,
         ];
     }
 }

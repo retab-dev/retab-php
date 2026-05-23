@@ -22,6 +22,13 @@ readonly class WorkflowTestRunTiming implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'created_at',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for WorkflowTestRunTiming::fromArray()");
+            }
+        }
         return new self(
             createdAt: new \DateTimeImmutable($data['created_at']),
             startedAt: isset($data['started_at']) ? new \DateTimeImmutable($data['started_at']) : null,

@@ -21,6 +21,13 @@ readonly class MetricsStaleErrorLastRun implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'run_id',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for MetricsStaleErrorLastRun::fromArray()");
+            }
+        }
         return new self(
             runId: $data['run_id'],
             definitionFingerprint: $data['definition_fingerprint'] ?? null,

@@ -18,16 +18,23 @@ readonly class WorkflowTestBlockTarget implements \JsonSerializable
 
     public function __construct(
         public string $blockId,
-        public ?string $type = null,
+        public string $type = 'block',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'block_id',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for WorkflowTestBlockTarget::fromArray()");
+            }
+        }
         return new self(
             blockId: $data['block_id'],
-            type: $data['type'] ?? null,
+            type: $data['type'] ?? 'block',
         );
     }
 

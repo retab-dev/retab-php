@@ -13,19 +13,27 @@ readonly class SimilarityGteCondition implements \JsonSerializable
     public function __construct(
         public mixed $reference,
         public float $threshold,
-        public ?string $kind = null,
         public ?SimilarityGteConditionMethod $method = null,
+        public string $kind = 'similarity_gte',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'reference',
+            'threshold',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for SimilarityGteCondition::fromArray()");
+            }
+        }
         return new self(
             reference: $data['reference'],
             threshold: $data['threshold'],
-            kind: $data['kind'] ?? null,
             method: isset($data['method']) ? SimilarityGteConditionMethod::from($data['method']) : null,
+            kind: $data['kind'] ?? 'similarity_gte',
         );
     }
 
@@ -35,8 +43,8 @@ readonly class SimilarityGteCondition implements \JsonSerializable
         return [
             'reference' => $this->reference,
             'threshold' => $this->threshold,
-            'kind' => $this->kind,
             'method' => $this->method?->value,
+            'kind' => $this->kind,
         ];
     }
 }

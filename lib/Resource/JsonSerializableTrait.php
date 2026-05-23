@@ -8,9 +8,18 @@ namespace Retab\Resource;
 
 trait JsonSerializableTrait
 {
-    /** @return array<string, mixed> */
+    /**
+     * Strip null fields before JSON serialization. The Retab backend
+     * (pydantic) rejects payloads where an optional non-nullable
+     * field is sent as null (e.g. `handle_inputs: null` on a
+     * ManualWorkflowTestSource). Matches the Python SDK behavior
+     * `model_dump(exclude_none=True)`. Harmless for round-trips: the
+     * fromArray accessors all fall back to null when a key is absent.
+     *
+     * @return array<string, mixed>
+     */
     public function jsonSerialize(): array
     {
-        return $this->toArray();
+        return array_filter($this->toArray(), static fn ($v) => $v !== null);
     }
 }

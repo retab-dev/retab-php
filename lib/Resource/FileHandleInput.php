@@ -13,16 +13,23 @@ readonly class FileHandleInput implements \JsonSerializable
 
     public function __construct(
         public MaterializedDocument $document,
-        public ?string $type = null,
+        public string $type = 'file',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'document',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for FileHandleInput::fromArray()");
+            }
+        }
         return new self(
             document: MaterializedDocument::fromArray($data['document']),
-            type: $data['type'] ?? null,
+            type: $data['type'] ?? 'file',
         );
     }
 

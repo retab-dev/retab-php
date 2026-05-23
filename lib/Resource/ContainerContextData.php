@@ -26,6 +26,14 @@ readonly class ContainerContextData implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'container_id',
+            'iteration',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ContainerContextData::fromArray()");
+            }
+        }
         return new self(
             containerId: $data['container_id'],
             iteration: $data['iteration'],

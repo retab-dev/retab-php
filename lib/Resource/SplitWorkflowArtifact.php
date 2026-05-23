@@ -38,13 +38,25 @@ readonly class SplitWorkflowArtifact implements \JsonSerializable
         /** Usage information for the split operation */
         public ?RetabUsage $usage = null,
         /** Artifact operation that determines the backing record type */
-        public ?string $operation = null,
+        public string $operation = 'split',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'id',
+            'file',
+            'model',
+            'subdocuments',
+            'output',
+            'created_at',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for SplitWorkflowArtifact::fromArray()");
+            }
+        }
         return new self(
             id: $data['id'],
             file: FileRef::fromArray($data['file']),
@@ -56,7 +68,7 @@ readonly class SplitWorkflowArtifact implements \JsonSerializable
             instructions: $data['instructions'] ?? null,
             consensus: isset($data['consensus']) ? SplitConsensus::fromArray($data['consensus']) : null,
             usage: isset($data['usage']) ? RetabUsage::fromArray($data['usage']) : null,
-            operation: $data['operation'] ?? null,
+            operation: $data['operation'] ?? 'split',
         );
     }
 

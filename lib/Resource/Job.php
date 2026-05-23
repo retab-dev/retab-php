@@ -19,7 +19,6 @@ readonly class Job implements \JsonSerializable
     public function __construct(
         public JobsEndpoint $endpoint,
         public ?string $id = null,
-        public ?string $object = null,
         public ?JobStatus $status = null,
         public ?JobError $error = null,
         /** @var array<\Retab\Resource\JobWarning>|null */
@@ -37,16 +36,23 @@ readonly class Job implements \JsonSerializable
         /** @var array<string, mixed>|null */
         public ?array $request = null,
         public ?JobResponse $response = null,
+        public string $object = 'job',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'endpoint',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for Job::fromArray()");
+            }
+        }
         return new self(
             endpoint: JobsEndpoint::from($data['endpoint']),
             id: $data['id'] ?? null,
-            object: $data['object'] ?? null,
             status: isset($data['status']) ? JobStatus::from($data['status']) : null,
             error: isset($data['error']) ? JobError::fromArray($data['error']) : null,
             warnings: isset($data['warnings']) ? array_map(fn ($item) => JobWarning::fromArray($item), $data['warnings']) : null,
@@ -61,6 +67,7 @@ readonly class Job implements \JsonSerializable
             lastFailureCode: $data['last_failure_code'] ?? null,
             request: $data['request'] ?? null,
             response: isset($data['response']) ? JobResponse::fromArray($data['response']) : null,
+            object: $data['object'] ?? 'job',
         );
     }
 
@@ -70,7 +77,6 @@ readonly class Job implements \JsonSerializable
         return [
             'endpoint' => $this->endpoint->value,
             'id' => $this->id,
-            'object' => $this->object,
             'status' => $this->status?->value,
             'error' => $this->error?->toArray(),
             'warnings' => $this->warnings !== null ? array_map(fn ($item) => $item->toArray(), $this->warnings) : null,
@@ -85,6 +91,7 @@ readonly class Job implements \JsonSerializable
             'last_failure_code' => $this->lastFailureCode,
             'request' => $this->request,
             'response' => $this->response?->toArray(),
+            'object' => $this->object,
         ];
     }
 }

@@ -13,16 +13,23 @@ readonly class ReviewTopMarginLt implements \JsonSerializable
 
     public function __construct(
         public float $margin,
-        public ?string $kind = null,
+        public string $kind = 'top_margin_lt',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'margin',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ReviewTopMarginLt::fromArray()");
+            }
+        }
         return new self(
             margin: $data['margin'],
-            kind: $data['kind'] ?? null,
+            kind: $data['kind'] ?? 'top_margin_lt',
         );
     }
 

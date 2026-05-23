@@ -21,6 +21,14 @@ readonly class CreateWorkflowTestRunForTargetRequest implements \JsonSerializabl
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'workflow_id',
+            'target',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for CreateWorkflowTestRunForTargetRequest::fromArray()");
+            }
+        }
         return new self(
             workflowId: $data['workflow_id'],
             target: WorkflowTestBlockTarget::fromArray($data['target']),

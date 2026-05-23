@@ -30,6 +30,15 @@ readonly class WorkflowEdgeCreateRequest implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'workflow_id',
+            'source_block',
+            'target_block',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for WorkflowEdgeCreateRequest::fromArray()");
+            }
+        }
         return new self(
             workflowId: $data['workflow_id'],
             sourceBlock: $data['source_block'],

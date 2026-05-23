@@ -30,13 +30,25 @@ readonly class EditWorkflowArtifact implements \JsonSerializable
         /** Usage information for the edit operation. */
         public ?RetabUsage $usage = null,
         /** Artifact operation that determines the backing record type */
-        public ?string $operation = null,
+        public string $operation = 'edit',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'id',
+            'file',
+            'model',
+            'config',
+            'output',
+            'created_at',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for EditWorkflowArtifact::fromArray()");
+            }
+        }
         return new self(
             id: $data['id'],
             file: FileRef::fromArray($data['file']),
@@ -47,7 +59,7 @@ readonly class EditWorkflowArtifact implements \JsonSerializable
             instructions: $data['instructions'] ?? null,
             templateId: $data['template_id'] ?? null,
             usage: isset($data['usage']) ? RetabUsage::fromArray($data['usage']) : null,
-            operation: $data['operation'] ?? null,
+            operation: $data['operation'] ?? 'edit',
         );
     }
 

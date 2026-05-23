@@ -12,9 +12,9 @@ readonly class WebhookTrigger implements \JsonSerializable
     use JsonSerializableTrait;
 
     public function __construct(
-        public ?string $type = null,
         /** ID of the webhook configuration, when known */
         public ?string $webhookId = null,
+        public string $type = 'webhook',
     ) {
     }
 
@@ -22,8 +22,8 @@ readonly class WebhookTrigger implements \JsonSerializable
     public static function fromArray(array $data): self
     {
         return new self(
-            type: $data['type'] ?? null,
             webhookId: $data['webhook_id'] ?? null,
+            type: $data['type'] ?? 'webhook',
         );
     }
 
@@ -31,8 +31,8 @@ readonly class WebhookTrigger implements \JsonSerializable
     public function toArray(): array
     {
         return [
-            'type' => $this->type,
             'webhook_id' => $this->webhookId,
+            'type' => $this->type,
         ];
     }
 }

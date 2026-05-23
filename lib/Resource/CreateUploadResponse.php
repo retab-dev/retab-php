@@ -32,6 +32,16 @@ readonly class CreateUploadResponse implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'fileId',
+            'uploadUrl',
+            'mimeData',
+            'expiresAt',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for CreateUploadResponse::fromArray()");
+            }
+        }
         return new self(
             fileId: $data['fileId'],
             uploadUrl: $data['uploadUrl'],

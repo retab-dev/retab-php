@@ -21,6 +21,15 @@ readonly class ExperimentConfusionFlowMetric implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'source',
+            'target',
+            'score',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ExperimentConfusionFlowMetric::fromArray()");
+            }
+        }
         return new self(
             source: $data['source'],
             target: $data['target'],

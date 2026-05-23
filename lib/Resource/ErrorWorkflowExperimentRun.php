@@ -17,11 +17,11 @@ readonly class ErrorWorkflowExperimentRun implements \JsonSerializable
     use JsonSerializableTrait;
 
     public function __construct(
-        public ?string $status = null,
         /** Human-readable error message */
         public ?string $message = null,
         /** Structured error context including stack trace */
         public ?ErrorDetails $details = null,
+        public string $status = 'error',
     ) {
     }
 
@@ -29,9 +29,9 @@ readonly class ErrorWorkflowExperimentRun implements \JsonSerializable
     public static function fromArray(array $data): self
     {
         return new self(
-            status: $data['status'] ?? null,
             message: $data['message'] ?? null,
             details: isset($data['details']) ? ErrorDetails::fromArray($data['details']) : null,
+            status: $data['status'] ?? 'error',
         );
     }
 
@@ -39,9 +39,9 @@ readonly class ErrorWorkflowExperimentRun implements \JsonSerializable
     public function toArray(): array
     {
         return [
-            'status' => $this->status,
             'message' => $this->message,
             'details' => $this->details?->toArray(),
+            'status' => $this->status,
         ];
     }
 }

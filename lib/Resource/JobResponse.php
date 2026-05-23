@@ -21,6 +21,14 @@ readonly class JobResponse implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'status_code',
+            'body',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for JobResponse::fromArray()");
+            }
+        }
         return new self(
             statusCode: $data['status_code'],
             body: $data['body'],

@@ -43,6 +43,13 @@ readonly class CreateExperimentRequest implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'workflow_id',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for CreateExperimentRequest::fromArray()");
+            }
+        }
         return new self(
             workflowId: $data['workflow_id'],
             blockId: $data['block_id'] ?? null,

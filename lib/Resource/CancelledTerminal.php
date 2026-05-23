@@ -12,9 +12,9 @@ readonly class CancelledTerminal implements \JsonSerializable
     use JsonSerializableTrait;
 
     public function __construct(
-        public ?string $status = null,
         /** Human-readable reason, when known */
         public ?string $reason = null,
+        public string $status = 'cancelled',
     ) {
     }
 
@@ -22,8 +22,8 @@ readonly class CancelledTerminal implements \JsonSerializable
     public static function fromArray(array $data): self
     {
         return new self(
-            status: $data['status'] ?? null,
             reason: $data['reason'] ?? null,
+            status: $data['status'] ?? 'cancelled',
         );
     }
 
@@ -31,8 +31,8 @@ readonly class CancelledTerminal implements \JsonSerializable
     public function toArray(): array
     {
         return [
-            'status' => $this->status,
             'reason' => $this->reason,
+            'status' => $this->status,
         ];
     }
 }

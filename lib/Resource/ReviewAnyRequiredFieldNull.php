@@ -17,7 +17,7 @@ readonly class ReviewAnyRequiredFieldNull implements \JsonSerializable
     use JsonSerializableTrait;
 
     public function __construct(
-        public ?string $kind = null,
+        public string $kind = 'any_required_field_null',
     ) {
     }
 
@@ -25,7 +25,7 @@ readonly class ReviewAnyRequiredFieldNull implements \JsonSerializable
     public static function fromArray(array $data): self
     {
         return new self(
-            kind: $data['kind'] ?? null,
+            kind: $data['kind'] ?? 'any_required_field_null',
         );
     }
 

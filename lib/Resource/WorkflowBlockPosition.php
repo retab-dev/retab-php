@@ -19,6 +19,14 @@ readonly class WorkflowBlockPosition implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'x',
+            'y',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for WorkflowBlockPosition::fromArray()");
+            }
+        }
         return new self(
             x: $data['x'],
             y: $data['y'],

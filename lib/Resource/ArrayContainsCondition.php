@@ -13,16 +13,23 @@ readonly class ArrayContainsCondition implements \JsonSerializable
     public function __construct(
         /** @var array<string, mixed> */
         public array $expected,
-        public ?string $kind = null,
+        public string $kind = 'array_contains',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'expected',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ArrayContainsCondition::fromArray()");
+            }
+        }
         return new self(
             expected: $data['expected'],
-            kind: $data['kind'] ?? null,
+            kind: $data['kind'] ?? 'array_contains',
         );
     }
 

@@ -24,6 +24,13 @@ readonly class PartitionChunk implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'key',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for PartitionChunk::fromArray()");
+            }
+        }
         return new self(
             key: $data['key'],
             pages: $data['pages'] ?? null,

@@ -12,9 +12,9 @@ readonly class ApiTrigger implements \JsonSerializable
     use JsonSerializableTrait;
 
     public function __construct(
-        public ?string $type = null,
         /** API key id used to start the run, when known */
         public ?string $apiKeyId = null,
+        public string $type = 'api',
     ) {
     }
 
@@ -22,8 +22,8 @@ readonly class ApiTrigger implements \JsonSerializable
     public static function fromArray(array $data): self
     {
         return new self(
-            type: $data['type'] ?? null,
             apiKeyId: $data['api_key_id'] ?? null,
+            type: $data['type'] ?? 'api',
         );
     }
 
@@ -31,8 +31,8 @@ readonly class ApiTrigger implements \JsonSerializable
     public function toArray(): array
     {
         return [
-            'type' => $this->type,
             'api_key_id' => $this->apiKeyId,
+            'type' => $this->type,
         ];
     }
 }

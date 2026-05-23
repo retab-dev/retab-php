@@ -14,19 +14,26 @@ readonly class EmailTrigger implements \JsonSerializable
     public function __construct(
         /** Sender email address */
         public string $sender,
-        public ?string $type = null,
         /** Email subject line */
         public ?string $subject = null,
+        public string $type = 'email',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'sender',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for EmailTrigger::fromArray()");
+            }
+        }
         return new self(
             sender: $data['sender'],
-            type: $data['type'] ?? null,
             subject: $data['subject'] ?? null,
+            type: $data['type'] ?? 'email',
         );
     }
 
@@ -35,8 +42,8 @@ readonly class EmailTrigger implements \JsonSerializable
     {
         return [
             'sender' => $this->sender,
-            'type' => $this->type,
             'subject' => $this->subject,
+            'type' => $this->type,
         ];
     }
 }

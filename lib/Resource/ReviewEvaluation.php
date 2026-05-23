@@ -16,8 +16,6 @@ readonly class ReviewEvaluation implements \JsonSerializable
         public string $stepId,
         /** When this artifact was written by the orchestrator. */
         public \DateTimeImmutable $createdAt,
-        /** Artifact operation that determines the backing record type */
-        public ?string $operation = null,
         /** @var array<\Retab\Resource\ConditionEvaluationResult>|null */
         public ?array $evaluations = null,
         /** @var array<string>|null */
@@ -31,18 +29,29 @@ readonly class ReviewEvaluation implements \JsonSerializable
         public ?string $reviewNotes = null,
         public ?bool $requestedRevision = null,
         public ?\DateTimeImmutable $reviewedAt = null,
+        /** Artifact operation that determines the backing record type */
+        public string $operation = 'review_trigger_evaluation',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'id',
+            'workflow_run_id',
+            'step_id',
+            'created_at',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ReviewEvaluation::fromArray()");
+            }
+        }
         return new self(
             id: $data['id'],
             workflowRunId: $data['workflow_run_id'],
             stepId: $data['step_id'],
             createdAt: new \DateTimeImmutable($data['created_at']),
-            operation: $data['operation'] ?? null,
             evaluations: isset($data['evaluations']) ? array_map(fn ($item) => ConditionEvaluationResult::fromArray($item), $data['evaluations']) : null,
             selectedHandles: $data['selected_handles'] ?? null,
             matchedBranchId: $data['matched_branch_id'] ?? null,
@@ -53,6 +62,7 @@ readonly class ReviewEvaluation implements \JsonSerializable
             reviewNotes: $data['review_notes'] ?? null,
             requestedRevision: $data['requested_revision'] ?? null,
             reviewedAt: isset($data['reviewed_at']) ? new \DateTimeImmutable($data['reviewed_at']) : null,
+            operation: $data['operation'] ?? 'review_trigger_evaluation',
         );
     }
 
@@ -64,7 +74,6 @@ readonly class ReviewEvaluation implements \JsonSerializable
             'workflow_run_id' => $this->workflowRunId,
             'step_id' => $this->stepId,
             'created_at' => $this->createdAt->format(\DateTimeInterface::RFC3339_EXTENDED),
-            'operation' => $this->operation,
             'evaluations' => $this->evaluations !== null ? array_map(fn ($item) => $item->toArray(), $this->evaluations) : null,
             'selected_handles' => $this->selectedHandles,
             'matched_branch_id' => $this->matchedBranchId,
@@ -75,6 +84,7 @@ readonly class ReviewEvaluation implements \JsonSerializable
             'review_notes' => $this->reviewNotes,
             'requested_revision' => $this->requestedRevision,
             'reviewed_at' => $this->reviewedAt?->format(\DateTimeInterface::RFC3339_EXTENDED),
+            'operation' => $this->operation,
         ];
     }
 }

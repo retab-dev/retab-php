@@ -24,6 +24,14 @@ readonly class ParseOutput implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'pages',
+            'text',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ParseOutput::fromArray()");
+            }
+        }
         return new self(
             pages: $data['pages'],
             text: $data['text'],

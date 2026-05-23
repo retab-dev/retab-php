@@ -54,6 +54,14 @@ readonly class ConditionEvaluationResult implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'condition_id',
+            'details',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ConditionEvaluationResult::fromArray()");
+            }
+        }
         return new self(
             conditionId: $data['condition_id'],
             details: ConditionEvaluationDetails::fromArray($data['details']),

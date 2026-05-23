@@ -11,9 +11,9 @@ readonly class JsonSchemaValidCondition implements \JsonSerializable
     use JsonSerializableTrait;
 
     public function __construct(
-        public ?string $kind = null,
         /** @var array<string, mixed>|null */
         public ?array $schema = null,
+        public string $kind = 'json_schema_valid',
     ) {
     }
 
@@ -21,8 +21,8 @@ readonly class JsonSchemaValidCondition implements \JsonSerializable
     public static function fromArray(array $data): self
     {
         return new self(
-            kind: $data['kind'] ?? null,
             schema: $data['schema'] ?? null,
+            kind: $data['kind'] ?? 'json_schema_valid',
         );
     }
 
@@ -30,8 +30,8 @@ readonly class JsonSchemaValidCondition implements \JsonSerializable
     public function toArray(): array
     {
         return [
-            'kind' => $this->kind,
             'schema' => $this->schema,
+            'kind' => $this->kind,
         ];
     }
 }

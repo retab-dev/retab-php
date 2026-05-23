@@ -14,16 +14,23 @@ readonly class ScheduleTrigger implements \JsonSerializable
     public function __construct(
         /** ID of the schedule that fired this run */
         public string $scheduleId,
-        public ?string $type = null,
+        public string $type = 'schedule',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'schedule_id',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ScheduleTrigger::fromArray()");
+            }
+        }
         return new self(
             scheduleId: $data['schedule_id'],
-            type: $data['type'] ?? null,
+            type: $data['type'] ?? 'schedule',
         );
     }
 

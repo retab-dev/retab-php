@@ -12,9 +12,9 @@ readonly class ManualTrigger implements \JsonSerializable
     use JsonSerializableTrait;
 
     public function __construct(
-        public ?string $type = null,
         /** User who started the run, when known */
         public ?string $userId = null,
+        public string $type = 'manual',
     ) {
     }
 
@@ -22,8 +22,8 @@ readonly class ManualTrigger implements \JsonSerializable
     public static function fromArray(array $data): self
     {
         return new self(
-            type: $data['type'] ?? null,
             userId: $data['user_id'] ?? null,
+            type: $data['type'] ?? 'manual',
         );
     }
 
@@ -31,8 +31,8 @@ readonly class ManualTrigger implements \JsonSerializable
     public function toArray(): array
     {
         return [
-            'type' => $this->type,
             'user_id' => $this->userId,
+            'type' => $this->type,
         ];
     }
 }

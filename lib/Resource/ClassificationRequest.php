@@ -35,6 +35,14 @@ readonly class ClassificationRequest implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'document',
+            'categories',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ClassificationRequest::fromArray()");
+            }
+        }
         return new self(
             document: $data['document'],
             categories: array_map(fn ($item) => Category::fromArray($item), $data['categories']),

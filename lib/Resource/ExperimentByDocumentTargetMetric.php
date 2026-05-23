@@ -22,6 +22,13 @@ readonly class ExperimentByDocumentTargetMetric implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'path',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ExperimentByDocumentTargetMetric::fromArray()");
+            }
+        }
         return new self(
             path: $data['path'],
             score: $data['score'] ?? null,

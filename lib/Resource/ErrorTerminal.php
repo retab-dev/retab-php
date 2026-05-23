@@ -14,7 +14,6 @@ readonly class ErrorTerminal implements \JsonSerializable
     public function __construct(
         /** Human-readable error message */
         public string $message,
-        public ?string $status = null,
         /** Which execution stage failed */
         public ?ErrorTerminalStage $stage = null,
         /** Error category for retry decisions */
@@ -23,19 +22,27 @@ readonly class ErrorTerminal implements \JsonSerializable
         public ?ErrorDetails $details = null,
         /** Step ID of the failing step, when the failure was attributable to a specific step */
         public ?string $failingStepId = null,
+        public string $status = 'error',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'message',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ErrorTerminal::fromArray()");
+            }
+        }
         return new self(
             message: $data['message'],
-            status: $data['status'] ?? null,
             stage: isset($data['stage']) ? ErrorTerminalStage::from($data['stage']) : null,
             category: isset($data['category']) ? ErrorTerminalCategory::from($data['category']) : null,
             details: isset($data['details']) ? ErrorDetails::fromArray($data['details']) : null,
             failingStepId: $data['failing_step_id'] ?? null,
+            status: $data['status'] ?? 'error',
         );
     }
 
@@ -44,11 +51,11 @@ readonly class ErrorTerminal implements \JsonSerializable
     {
         return [
             'message' => $this->message,
-            'status' => $this->status,
             'stage' => $this->stage?->value,
             'category' => $this->category?->value,
             'details' => $this->details?->toArray(),
             'failing_step_id' => $this->failingStepId,
+            'status' => $this->status,
         ];
     }
 }

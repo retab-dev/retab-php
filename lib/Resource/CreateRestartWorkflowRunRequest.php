@@ -26,6 +26,14 @@ readonly class CreateRestartWorkflowRunRequest implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'restart_of',
+            'config_source',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for CreateRestartWorkflowRunRequest::fromArray()");
+            }
+        }
         return new self(
             restartOf: $data['restart_of'],
             configSource: CreateRestartWorkflowRunRequestConfigSource::from($data['config_source']),

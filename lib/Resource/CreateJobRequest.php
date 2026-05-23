@@ -26,6 +26,14 @@ readonly class CreateJobRequest implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'endpoint',
+            'request',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for CreateJobRequest::fromArray()");
+            }
+        }
         return new self(
             endpoint: JobsEndpoint::from($data['endpoint']),
             request: $data['request'],

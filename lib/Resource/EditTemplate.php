@@ -34,6 +34,17 @@ readonly class EditTemplate implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'id',
+            'name',
+            'file',
+            'created_at',
+            'updated_at',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for EditTemplate::fromArray()");
+            }
+        }
         return new self(
             id: $data['id'],
             name: $data['name'],

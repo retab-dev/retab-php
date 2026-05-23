@@ -17,16 +17,23 @@ readonly class ErrorBlockExecutionLifecycle implements \JsonSerializable
     public function __construct(
         /** Human-readable error message */
         public string $message,
-        public ?string $status = null,
+        public string $status = 'error',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'message',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ErrorBlockExecutionLifecycle::fromArray()");
+            }
+        }
         return new self(
             message: $data['message'],
-            status: $data['status'] ?? null,
+            status: $data['status'] ?? 'error',
         );
     }
 

@@ -41,6 +41,17 @@ readonly class WorkflowTestResult implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'id',
+            'test_id',
+            'workflow_id',
+            'target',
+            'source',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for WorkflowTestResult::fromArray()");
+            }
+        }
         return new self(
             id: $data['id'],
             testId: $data['test_id'],

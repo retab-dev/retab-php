@@ -25,6 +25,15 @@ readonly class FileLink implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'download_url',
+            'expires_in',
+            'filename',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for FileLink::fromArray()");
+            }
+        }
         return new self(
             downloadUrl: $data['download_url'],
             expiresIn: $data['expires_in'],

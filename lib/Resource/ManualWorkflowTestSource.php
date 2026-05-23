@@ -11,9 +11,9 @@ readonly class ManualWorkflowTestSource implements \JsonSerializable
     use JsonSerializableTrait;
 
     public function __construct(
-        public ?string $type = null,
         /** @var array<string, \Retab\Resource\JsonHandleInput|\Retab\Resource\FileHandleInput>|null */
         public ?array $handleInputs = null,
+        public string $type = 'manual',
     ) {
     }
 
@@ -21,8 +21,8 @@ readonly class ManualWorkflowTestSource implements \JsonSerializable
     public static function fromArray(array $data): self
     {
         return new self(
-            type: $data['type'] ?? null,
             handleInputs: $data['handle_inputs'] ?? null,
+            type: $data['type'] ?? 'manual',
         );
     }
 
@@ -30,8 +30,8 @@ readonly class ManualWorkflowTestSource implements \JsonSerializable
     public function toArray(): array
     {
         return [
-            'type' => $this->type,
             'handle_inputs' => $this->handleInputs,
+            'type' => $this->type,
         ];
     }
 }

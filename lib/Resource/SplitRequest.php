@@ -33,6 +33,14 @@ readonly class SplitRequest implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'document',
+            'subdocuments',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for SplitRequest::fromArray()");
+            }
+        }
         return new self(
             document: $data['document'],
             subdocuments: array_map(fn ($item) => Subdocument::fromArray($item), $data['subdocuments']),

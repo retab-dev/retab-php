@@ -12,7 +12,7 @@ readonly class AwaitingReviewStepLifecycle implements \JsonSerializable
     use JsonSerializableTrait;
 
     public function __construct(
-        public ?string $status = null,
+        public string $status = 'awaiting_review',
     ) {
     }
 
@@ -20,7 +20,7 @@ readonly class AwaitingReviewStepLifecycle implements \JsonSerializable
     public static function fromArray(array $data): self
     {
         return new self(
-            status: $data['status'] ?? null,
+            status: $data['status'] ?? 'awaiting_review',
         );
     }
 

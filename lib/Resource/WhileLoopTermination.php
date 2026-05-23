@@ -18,24 +18,35 @@ readonly class WhileLoopTermination implements \JsonSerializable
         public WhileLoopTerminationTerminationReason $terminationReason,
         /** When this artifact was written by the orchestrator. */
         public \DateTimeImmutable $createdAt,
-        /** Artifact operation that determines the backing record type */
-        public ?string $operation = null,
         /** @var array<\Retab\Resource\ConditionEvaluationResult>|null */
         public ?array $evaluations = null,
+        /** Artifact operation that determines the backing record type */
+        public string $operation = 'while_loop_termination',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'id',
+            'workflow_run_id',
+            'step_id',
+            'termination_reason',
+            'created_at',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for WhileLoopTermination::fromArray()");
+            }
+        }
         return new self(
             id: $data['id'],
             workflowRunId: $data['workflow_run_id'],
             stepId: $data['step_id'],
             terminationReason: WhileLoopTerminationTerminationReason::from($data['termination_reason']),
             createdAt: new \DateTimeImmutable($data['created_at']),
-            operation: $data['operation'] ?? null,
             evaluations: isset($data['evaluations']) ? array_map(fn ($item) => ConditionEvaluationResult::fromArray($item), $data['evaluations']) : null,
+            operation: $data['operation'] ?? 'while_loop_termination',
         );
     }
 
@@ -48,8 +59,8 @@ readonly class WhileLoopTermination implements \JsonSerializable
             'step_id' => $this->stepId,
             'termination_reason' => $this->terminationReason->value,
             'created_at' => $this->createdAt->format(\DateTimeInterface::RFC3339_EXTENDED),
-            'operation' => $this->operation,
             'evaluations' => $this->evaluations !== null ? array_map(fn ($item) => $item->toArray(), $this->evaluations) : null,
+            'operation' => $this->operation,
         ];
     }
 }

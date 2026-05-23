@@ -19,6 +19,14 @@ readonly class DeclarativeExportResponse implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'workflow_id',
+            'yaml_definition',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for DeclarativeExportResponse::fromArray()");
+            }
+        }
         return new self(
             workflowId: $data['workflow_id'],
             yamlDefinition: $data['yaml_definition'],

@@ -15,17 +15,25 @@ readonly class ReviewFieldConfidenceLt implements \JsonSerializable
         /** JSONPath-style path, e.g. '$.invoice.total' or 'invoice.total' */
         public string $path,
         public float $threshold,
-        public ?string $kind = null,
+        public string $kind = 'field_confidence_lt',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'path',
+            'threshold',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ReviewFieldConfidenceLt::fromArray()");
+            }
+        }
         return new self(
             path: $data['path'],
             threshold: $data['threshold'],
-            kind: $data['kind'] ?? null,
+            kind: $data['kind'] ?? 'field_confidence_lt',
         );
     }
 

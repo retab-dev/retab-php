@@ -40,6 +40,23 @@ readonly class ExperimentRun implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'id',
+            'workflow',
+            'trigger',
+            'experiment_id',
+            'block_id',
+            'block_type',
+            'n_consensus',
+            'lifecycle',
+            'timing',
+            'definition_fingerprint',
+            'documents_fingerprint',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ExperimentRun::fromArray()");
+            }
+        }
         return new self(
             id: $data['id'],
             workflow: WorkflowSnapshotRef::fromArray($data['workflow']),

@@ -57,6 +57,18 @@ readonly class WorkflowRunStep implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'block_id',
+            'step_id',
+            'block_type',
+            'block_label',
+            'lifecycle',
+            'run_id',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for WorkflowRunStep::fromArray()");
+            }
+        }
         return new self(
             blockId: $data['block_id'],
             stepId: $data['step_id'],

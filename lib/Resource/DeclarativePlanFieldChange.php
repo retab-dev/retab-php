@@ -26,6 +26,15 @@ readonly class DeclarativePlanFieldChange implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'path',
+            'path_display',
+            'action',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for DeclarativePlanFieldChange::fromArray()");
+            }
+        }
         return new self(
             path: $data['path'],
             pathDisplay: $data['path_display'],

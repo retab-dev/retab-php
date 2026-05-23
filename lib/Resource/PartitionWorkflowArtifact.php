@@ -37,13 +37,24 @@ readonly class PartitionWorkflowArtifact implements \JsonSerializable
         /** Usage information for the partition operation */
         public ?RetabUsage $usage = null,
         /** Artifact operation that determines the backing record type */
-        public ?string $operation = null,
+        public string $operation = 'partition',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'id',
+            'file',
+            'model',
+            'key',
+            'created_at',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for PartitionWorkflowArtifact::fromArray()");
+            }
+        }
         return new self(
             id: $data['id'],
             file: FileRef::fromArray($data['file']),
@@ -56,7 +67,7 @@ readonly class PartitionWorkflowArtifact implements \JsonSerializable
             output: isset($data['output']) ? array_map(fn ($item) => PartitionChunk::fromArray($item), $data['output']) : null,
             consensus: isset($data['consensus']) ? PartitionConsensus::fromArray($data['consensus']) : null,
             usage: isset($data['usage']) ? RetabUsage::fromArray($data['usage']) : null,
-            operation: $data['operation'] ?? null,
+            operation: $data['operation'] ?? 'partition',
         );
     }
 

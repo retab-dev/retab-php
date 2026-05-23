@@ -14,22 +14,29 @@ readonly class ErrorStepLifecycle implements \JsonSerializable
     public function __construct(
         /** Human-readable error message */
         public string $message,
-        public ?string $status = null,
         public ?ErrorTerminalStage $stage = null,
         public ?ErrorTerminalCategory $category = null,
         public ?ErrorDetails $details = null,
+        public string $status = 'error',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'message',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ErrorStepLifecycle::fromArray()");
+            }
+        }
         return new self(
             message: $data['message'],
-            status: $data['status'] ?? null,
             stage: isset($data['stage']) ? ErrorTerminalStage::from($data['stage']) : null,
             category: isset($data['category']) ? ErrorTerminalCategory::from($data['category']) : null,
             details: isset($data['details']) ? ErrorDetails::fromArray($data['details']) : null,
+            status: $data['status'] ?? 'error',
         );
     }
 
@@ -38,10 +45,10 @@ readonly class ErrorStepLifecycle implements \JsonSerializable
     {
         return [
             'message' => $this->message,
-            'status' => $this->status,
             'stage' => $this->stage?->value,
             'category' => $this->category?->value,
             'details' => $this->details?->toArray(),
+            'status' => $this->status,
         ];
     }
 }

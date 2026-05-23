@@ -14,19 +14,27 @@ readonly class ExperimentMetricsMissingError implements \JsonSerializable
     public function __construct(
         public string $experimentId,
         public string $message,
-        public ?string $kind = null,
-        public ?string $error = null,
+        public string $kind = 'no_metrics',
+        public string $error = 'no_metrics',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'experiment_id',
+            'message',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ExperimentMetricsMissingError::fromArray()");
+            }
+        }
         return new self(
             experimentId: $data['experiment_id'],
             message: $data['message'],
-            kind: $data['kind'] ?? null,
-            error: $data['error'] ?? null,
+            kind: $data['kind'] ?? 'no_metrics',
+            error: $data['error'] ?? 'no_metrics',
         );
     }
 

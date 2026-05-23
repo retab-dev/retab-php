@@ -23,6 +23,16 @@ readonly class MaterializedDocument implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'original_id',
+            'filename',
+            'mime_type',
+            'gcs_uri',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for MaterializedDocument::fromArray()");
+            }
+        }
         return new self(
             originalId: $data['original_id'],
             filename: $data['filename'],

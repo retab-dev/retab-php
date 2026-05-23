@@ -35,6 +35,19 @@ readonly class ExperimentResult implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'id',
+            'run_id',
+            'experiment_id',
+            'document_id',
+            'lifecycle',
+            'timing',
+            'block_type',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ExperimentResult::fromArray()");
+            }
+        }
         return new self(
             id: $data['id'],
             runId: $data['run_id'],

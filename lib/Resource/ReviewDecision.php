@@ -23,6 +23,15 @@ readonly class ReviewDecision implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'verdict',
+            'version_id',
+            'author',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ReviewDecision::fromArray()");
+            }
+        }
         return new self(
             verdict: ReviewVerdict::from($data['verdict']),
             versionId: $data['version_id'],

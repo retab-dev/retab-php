@@ -34,6 +34,13 @@ readonly class HandlePayload implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'type',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for HandlePayload::fromArray()");
+            }
+        }
         return new self(
             type: HandlePayloadType::from($data['type']),
             document: isset($data['document']) ? FileRef::fromArray($data['document']) : null,

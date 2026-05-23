@@ -32,6 +32,15 @@ readonly class CreateReviewVersionRequest implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'review_id',
+            'parent_id',
+            'snapshot',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for CreateReviewVersionRequest::fromArray()");
+            }
+        }
         return new self(
             reviewId: $data['review_id'],
             parentId: $data['parent_id'],

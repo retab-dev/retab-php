@@ -23,6 +23,17 @@ readonly class DeclarativeValidationResponse implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'workflow_id',
+            'block_count',
+            'edge_count',
+            'is_valid',
+            'diagnostics',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for DeclarativeValidationResponse::fromArray()");
+            }
+        }
         return new self(
             workflowId: $data['workflow_id'],
             blockCount: $data['block_count'],

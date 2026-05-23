@@ -23,6 +23,15 @@ readonly class WorkflowExportPayloadResponse implements \JsonSerializable
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'csv_data',
+            'rows',
+            'columns',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for WorkflowExportPayloadResponse::fromArray()");
+            }
+        }
         return new self(
             csvData: $data['csv_data'],
             rows: $data['rows'],

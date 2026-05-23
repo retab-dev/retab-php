@@ -19,18 +19,25 @@ readonly class SplitIouCondition implements \JsonSerializable
     public function __construct(
         /** @var array<string, mixed> */
         public array $expected,
-        public ?string $kind = null,
         public ?float $threshold = null,
+        public string $kind = 'split_iou_gte',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'expected',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for SplitIouCondition::fromArray()");
+            }
+        }
         return new self(
             expected: $data['expected'],
-            kind: $data['kind'] ?? null,
             threshold: $data['threshold'] ?? null,
+            kind: $data['kind'] ?? 'split_iou_gte',
         );
     }
 
@@ -39,8 +46,8 @@ readonly class SplitIouCondition implements \JsonSerializable
     {
         return [
             'expected' => $this->expected,
-            'kind' => $this->kind,
             'threshold' => $this->threshold,
+            'kind' => $this->kind,
         ];
     }
 }

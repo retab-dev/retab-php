@@ -12,16 +12,23 @@ readonly class StartWithCondition implements \JsonSerializable
 
     public function __construct(
         public string $expected,
-        public ?string $kind = null,
+        public string $kind = 'starts_with',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'expected',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for StartWithCondition::fromArray()");
+            }
+        }
         return new self(
             expected: $data['expected'],
-            kind: $data['kind'] ?? null,
+            kind: $data['kind'] ?? 'starts_with',
         );
     }
 

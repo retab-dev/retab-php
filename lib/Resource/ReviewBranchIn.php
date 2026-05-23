@@ -19,16 +19,23 @@ readonly class ReviewBranchIn implements \JsonSerializable
     public function __construct(
         /** @var array<string> */
         public array $branches,
-        public ?string $kind = null,
+        public string $kind = 'branch_in',
     ) {
     }
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'branches',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for ReviewBranchIn::fromArray()");
+            }
+        }
         return new self(
             branches: $data['branches'],
-            kind: $data['kind'] ?? null,
+            kind: $data['kind'] ?? 'branch_in',
         );
     }
 

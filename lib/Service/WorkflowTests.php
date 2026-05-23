@@ -19,28 +19,37 @@ class WorkflowTests
      * List Tests
      * @param string $workflowId
      * @param string|null $targetBlockId
+     * @param string|null $before
+     * @param string|null $after
      * @param int|null $limit Defaults to 50.
-     * @return list<\Retab\Resource\WorkflowTest>
+     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
+     * @return \Retab\PaginatedResponse<\Retab\Resource\WorkflowTest>
      * @throws \Retab\Exception\RetabException
      */
     public function list(
         string $workflowId,
         ?string $targetBlockId = null,
+        ?string $before = null,
+        ?string $after = null,
         ?int $limit = null,
+        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
         ?\Retab\RequestOptions $options = null,
-    ): array {
+    ): \Retab\PaginatedResponse {
         $query = array_filter([
             'workflow_id' => $workflowId,
             'target_block_id' => $targetBlockId,
+            'before' => $before,
+            'after' => $after,
             'limit' => $limit,
+            'order' => $order->value,
         ], fn ($v) => $v !== null);
-        $response = $this->client->request(
+        return $this->client->requestPage(
             method: 'GET',
             path: 'v1/workflows/tests',
             query: $query,
+            modelClass: WorkflowTest::class,
             options: $options,
         );
-        return array_map(fn ($item) => WorkflowTest::fromArray($item), $response['data'] ?? []);
     }
 
     /**

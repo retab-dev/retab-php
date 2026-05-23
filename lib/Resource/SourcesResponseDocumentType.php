@@ -6,7 +6,7 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
-enum SourceResponseDocumentType: string
+enum SourcesResponseDocumentType: string
 {
     case Pdf = 'pdf';
     case Image = 'image';

@@ -6,9 +6,9 @@ declare(strict_types=1);
 
 namespace Retab\Service;
 
-use Retab\Resource\Split;
+use Retab\Resource\Parse;
 
-class SplitService
+class Parses
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
@@ -16,22 +16,22 @@ class SplitService
     }
 
     /**
-     * List Splits
+     * List Parses
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Defaults to 10.
-     * @param \Retab\Resource\ParsOrder $order Defaults to "desc".
+     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
      * @param string|null $filename
      * @param string|null $fromDate
      * @param string|null $toDate
-     * @return \Retab\PaginatedResponse<\Retab\Resource\Split>
+     * @return \Retab\PaginatedResponse<\Retab\Resource\Parse>
      * @throws \Retab\Exception\RetabException
      */
     public function list(
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        \Retab\Resource\ParsOrder $order = \Retab\Resource\ParsOrder::Desc,
+        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
         ?string $filename = null,
         ?string $fromDate = null,
         ?string $toDate = null,
@@ -48,82 +48,82 @@ class SplitService
         ], fn ($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
-            path: 'v1/splits',
+            path: 'v1/parses',
             query: $query,
-            modelClass: Split::class,
+            modelClass: Parse::class,
             options: $options,
         );
     }
 
     /**
-     * Create Split
-     * @param \Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string} $document The document to split
-     * @param array<\Retab\Resource\Subdocument> $subdocuments The subdocuments to split the document into
-     * @param string|null $model The model to use to split the document
-     * @param string|null $instructions Free-form instructions appended to the system prompt to steer the split.
-     * @param int|null $nConsensus Number of consensus split runs to perform. Uses deterministic single-pass when set to 1.
+     * Create Parse
+     * @param \Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string} $document The document to parse
+     * @param string|null $model The model to use for parsing
+     * @param \Retab\Resource\TableParsingFormat|null $tableParsingFormat Format used to render tables extracted from the document
+     * @param int|null $imageResolutionDpi DPI used when rasterizing pages for the parser
+     * @param string|null $instructions Free-form instructions appended to the system prompt to steer the parse.
      * @param bool|null $bustCache If true, skip the LLM cache and force a fresh completion
-     * @return \Retab\Resource\Split
+     * @return \Retab\Resource\Parse
      * @throws \Retab\Exception\RetabException
      */
     public function create(
         mixed $document,
-        array $subdocuments,
         ?string $model = null,
+        ?\Retab\Resource\TableParsingFormat $tableParsingFormat = null,
+        ?int $imageResolutionDpi = null,
         ?string $instructions = null,
-        ?int $nConsensus = null,
         ?bool $bustCache = null,
         ?\Retab\RequestOptions $options = null,
-    ): \Retab\Resource\Split {
+    ): \Retab\Resource\Parse {
         $document = \Retab\Resource\MimeDataCoerce::coerce($document);
         $body = array_filter([
             'document' => $document,
-            'subdocuments' => $subdocuments,
             'model' => $model,
+            'table_parsing_format' => $tableParsingFormat?->value,
+            'image_resolution_dpi' => $imageResolutionDpi,
             'instructions' => $instructions,
-            'n_consensus' => $nConsensus,
             'bust_cache' => $bustCache,
         ], fn ($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
-            path: 'v1/splits',
+            path: 'v1/parses',
             body: $body,
             options: $options,
         );
-        return Split::fromArray($response);
+        return Parse::fromArray($response);
     }
 
     /**
-     * Get Split
-     * @param string $splitId
-     * @return \Retab\Resource\Split
+     * Get Parse
+     * @param string $parseId
+     * @return \Retab\Resource\Parse
      * @throws \Retab\Exception\RetabException
      */
     public function get(
-        string $splitId,
+        string $parseId,
         ?\Retab\RequestOptions $options = null,
-    ): \Retab\Resource\Split {
+    ): \Retab\Resource\Parse {
         $response = $this->client->request(
             method: 'GET',
-            path: 'v1/splits/' . rawurlencode($splitId),
+            path: 'v1/parses/' . rawurlencode($parseId),
             options: $options,
         );
-        return Split::fromArray($response);
+        return Parse::fromArray($response);
     }
 
     /**
-     * Delete Split
-     * @param string $splitId
+     * Delete Parse
+     * @param string $parseId
      * @return void
      * @throws \Retab\Exception\RetabException
      */
     public function delete(
-        string $splitId,
+        string $parseId,
         ?\Retab\RequestOptions $options = null,
     ): void {
         $this->client->request(
             method: 'DELETE',
-            path: 'v1/splits/' . rawurlencode($splitId),
+            path: 'v1/parses/' . rawurlencode($parseId),
             options: $options,
         );
     }

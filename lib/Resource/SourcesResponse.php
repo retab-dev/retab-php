@@ -6,7 +6,7 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
-readonly class SourceResponse implements \JsonSerializable
+readonly class SourcesResponse implements \JsonSerializable
 {
     use JsonSerializableTrait;
 
@@ -14,7 +14,7 @@ readonly class SourceResponse implements \JsonSerializable
         /** ID of the extraction */
         public string $extractionId,
         /** Detected document type of the source file */
-        public SourceResponseDocumentType $documentType,
+        public SourcesResponseDocumentType $documentType,
         /** File metadata (id, filename, mime_type) */
         public FileRef $file,
         /**
@@ -36,7 +36,7 @@ readonly class SourceResponse implements \JsonSerializable
     {
         return new self(
             extractionId: $data['extraction_id'],
-            documentType: SourceResponseDocumentType::from($data['document_type']),
+            documentType: SourcesResponseDocumentType::from($data['document_type']),
             file: FileRef::fromArray($data['file']),
             extraction: $data['extraction'],
             sources: $data['sources'],

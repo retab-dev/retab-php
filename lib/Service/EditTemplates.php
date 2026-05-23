@@ -20,7 +20,7 @@ class EditTemplates
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Defaults to 10.
-     * @param \Retab\Resource\ParsOrder $order Defaults to "desc".
+     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
      * @param string|null $name
      * @param string|null $sortBy Defaults to "created_at".
      * @return \Retab\PaginatedResponse<\Retab\Resource\EditTemplate>
@@ -30,7 +30,7 @@ class EditTemplates
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        \Retab\Resource\ParsOrder $order = \Retab\Resource\ParsOrder::Desc,
+        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
         ?string $name = null,
         ?string $sortBy = null,
         ?\Retab\RequestOptions $options = null,

@@ -8,7 +8,7 @@ namespace Retab\Service;
 
 use Retab\Resource\Classification;
 
-class ClassificationService
+class Classifications
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
@@ -20,7 +20,7 @@ class ClassificationService
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Defaults to 10.
-     * @param \Retab\Resource\ParsOrder $order Defaults to "desc".
+     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
      * @param string|null $filename
      * @param string|null $fromDate
      * @param string|null $toDate
@@ -31,7 +31,7 @@ class ClassificationService
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        \Retab\Resource\ParsOrder $order = \Retab\Resource\ParsOrder::Desc,
+        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
         ?string $filename = null,
         ?string $fromDate = null,
         ?string $toDate = null,

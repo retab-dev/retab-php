@@ -6,9 +6,9 @@ declare(strict_types=1);
 
 namespace Retab\Service;
 
-use Retab\Resource\Edit;
+use Retab\Resource\Partition;
 
-class EditService
+class Partitions
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
@@ -16,25 +16,23 @@ class EditService
     }
 
     /**
-     * List Edits
+     * List Partitions
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Defaults to 10.
-     * @param \Retab\Resource\ParsOrder $order Defaults to "desc".
+     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
      * @param string|null $filename
-     * @param string|null $templateId
      * @param string|null $fromDate
      * @param string|null $toDate
-     * @return \Retab\PaginatedResponse<\Retab\Resource\Edit>
+     * @return \Retab\PaginatedResponse<\Retab\Resource\Partition>
      * @throws \Retab\Exception\RetabException
      */
     public function list(
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        \Retab\Resource\ParsOrder $order = \Retab\Resource\ParsOrder::Desc,
+        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
         ?string $filename = null,
-        ?string $templateId = null,
         ?string $fromDate = null,
         ?string $toDate = null,
         ?\Retab\RequestOptions $options = null,
@@ -45,90 +43,90 @@ class EditService
             'limit' => $limit,
             'order' => $order->value,
             'filename' => $filename,
-            'template_id' => $templateId,
             'from_date' => $fromDate,
             'to_date' => $toDate,
         ], fn ($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
-            path: 'v1/edits',
+            path: 'v1/partitions',
             query: $query,
-            modelClass: Edit::class,
+            modelClass: Partition::class,
             options: $options,
         );
     }
 
     /**
-     * Create Edit
-     * @param string $instructions Instructions describing how to fill the form fields.
-     * @param \Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string}|null $document Input document (PDF, DOCX, XLSX, or PPTX). Mutually exclusive with template_id.
-     * @param string|null $templateId EditTemplate id to fill. When provided, uses the template's pre-defined form fields and empty PDF. Mutually exclusive with document.
-     * @param string|null $model The model to use for edit inference.
-     * @param \Retab\Resource\EditConfig|null $config Edit configuration (rendering options).
-     * @param bool|null $bustCache If true, skip the LLM cache and force a fresh completion.
-     * @return \Retab\Resource\Edit
+     * Create Partitions
+     * @param \Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string} $document The document to partition
+     * @param string $key The key to partition the document by
+     * @param string $instructions Instructions describing how the document should be partitioned
+     * @param string|null $model The model to use for partitioning
+     * @param int|null $nConsensus Number of partitioning runs to use for consensus voting. Uses deterministic single-pass when set to 1.
+     * @param bool|null $allowOverlap If true, allow a page to appear in more than one partition chunk
+     * @param bool|null $bustCache If true, skip the LLM cache and force a fresh completion
+     * @return \Retab\Resource\Partition
      * @throws \Retab\Exception\RetabException
      */
     public function create(
+        mixed $document,
+        string $key,
         string $instructions,
-        mixed $document = null,
-        ?string $templateId = null,
         ?string $model = null,
-        ?\Retab\Resource\EditConfig $config = null,
+        ?int $nConsensus = null,
+        ?bool $allowOverlap = null,
         ?bool $bustCache = null,
         ?\Retab\RequestOptions $options = null,
-    ): \Retab\Resource\Edit {
-        if ($document !== null) {
-            $document = \Retab\Resource\MimeDataCoerce::coerce($document);
-        }
+    ): \Retab\Resource\Partition {
+        $document = \Retab\Resource\MimeDataCoerce::coerce($document);
         $body = array_filter([
-            'instructions' => $instructions,
             'document' => $document,
-            'template_id' => $templateId,
+            'key' => $key,
+            'instructions' => $instructions,
             'model' => $model,
-            'config' => $config,
+            'n_consensus' => $nConsensus,
+            'allow_overlap' => $allowOverlap,
             'bust_cache' => $bustCache,
         ], fn ($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
-            path: 'v1/edits',
+            path: 'v1/partitions',
             body: $body,
             options: $options,
         );
-        return Edit::fromArray($response);
+        return Partition::fromArray($response);
     }
 
     /**
-     * Get Edit
-     * @param string $editId
-     * @return \Retab\Resource\Edit
+     * Get Partition
+     * @param string $partitionId
+     * @return \Retab\Resource\Partition
      * @throws \Retab\Exception\RetabException
      */
     public function get(
-        string $editId,
+        string $partitionId,
         ?\Retab\RequestOptions $options = null,
-    ): \Retab\Resource\Edit {
+    ): \Retab\Resource\Partition {
         $response = $this->client->request(
             method: 'GET',
-            path: 'v1/edits/' . rawurlencode($editId),
+            path: 'v1/partitions/' . rawurlencode($partitionId),
             options: $options,
         );
-        return Edit::fromArray($response);
+        return Partition::fromArray($response);
     }
 
     /**
-     * Delete Edit
-     * @param string $editId
+     * Delete Partition
+     * @param string $partitionId
      * @return void
      * @throws \Retab\Exception\RetabException
      */
     public function delete(
-        string $editId,
+        string $partitionId,
         ?\Retab\RequestOptions $options = null,
     ): void {
         $this->client->request(
             method: 'DELETE',
-            path: 'v1/edits/' . rawurlencode($editId),
+            path: 'v1/partitions/' . rawurlencode($partitionId),
             options: $options,
         );
     }

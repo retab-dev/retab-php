@@ -22,7 +22,7 @@ class Jobs
      * @param string|null $before First job ID from the current page, used to fetch the previous page
      * @param string|null $after Last job ID from the previous page, used to fetch the next page
      * @param int|null $limit Number of jobs to return Defaults to 20.
-     * @param \Retab\Resource\ParsOrder|null $order Sort order by created_at Defaults to "desc".
+     * @param \Retab\Resource\JobsOrder|null $order Sort order by created_at Defaults to "desc".
      * @param string|null $jobId Filter by job ID
      * @param \Retab\Resource\JobStatus|null $status Filter by status
      * @param \Retab\Resource\JobsEndpoint|null $endpoint Filter by endpoint
@@ -46,7 +46,7 @@ class Jobs
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        ?\Retab\Resource\ParsOrder $order = null,
+        ?\Retab\Resource\JobsOrder $order = null,
         ?string $jobId = null,
         ?\Retab\Resource\JobStatus $status = null,
         ?\Retab\Resource\JobsEndpoint $endpoint = null,

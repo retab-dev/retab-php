@@ -8,7 +8,7 @@ namespace Retab\Service;
 
 use Retab\Resource\PartialSchema;
 
-class Schema
+class Schemas
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,

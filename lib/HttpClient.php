@@ -82,8 +82,11 @@ final class HttpClient
         $opts = $options ?? new RequestOptions();
         $url = $this->buildUrl(path: $path, query: $query, options: $opts);
         $effectiveTimeout = $opts->timeout ?? $this->timeout;
+        // Retab uses an `API-Key` header, NOT `Authorization: Bearer`. The
+        // spec advertises `apiKeyAuth: { in: header, name: API-Key }` and the
+        // backend rejects bearer tokens with 401 Unauthorized.
         $headers = [
-            'Authorization' => 'Bearer ' . ($opts->apiKey ?? $this->apiKey),
+            'API-Key' => $opts->apiKey ?? $this->apiKey,
             'User-Agent' => $opts->userAgent ?? $this->userAgent,
             'Accept' => 'application/json',
         ];

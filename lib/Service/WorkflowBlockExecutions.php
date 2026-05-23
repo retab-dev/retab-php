@@ -19,30 +19,46 @@ class WorkflowBlockExecutions
      * List Block Executions
      *
      * List recent block executions for one workflow run block.
+     *
+     * Cursor pagination matches the conventions used by
+     * ``GET /v1/extractions`` — pass ``after`` from the previous page's
+     * ``list_metadata.after`` to advance, ``before`` to step backwards, and
+     * ``order`` to flip the sort direction. ``run_id`` + ``block_id`` are
+     * required scope filters; without them this endpoint would expose
+     * cross-run cursors that walk arbitrary block executions.
      * @param string $runId
      * @param string $blockId
+     * @param string|null $before
+     * @param string|null $after
      * @param int|null $limit Defaults to 20.
-     * @return list<\Retab\Resource\StoredBlockExecution>
+     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
+     * @return \Retab\PaginatedResponse<\Retab\Resource\StoredBlockExecution>
      * @throws \Retab\Exception\RetabException
      */
     public function list(
         string $runId,
         string $blockId,
+        ?string $before = null,
+        ?string $after = null,
         ?int $limit = null,
+        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
         ?\Retab\RequestOptions $options = null,
-    ): array {
+    ): \Retab\PaginatedResponse {
         $query = array_filter([
             'run_id' => $runId,
             'block_id' => $blockId,
+            'before' => $before,
+            'after' => $after,
             'limit' => $limit,
+            'order' => $order->value,
         ], fn ($v) => $v !== null);
-        $response = $this->client->request(
+        return $this->client->requestPage(
             method: 'GET',
             path: 'v1/workflows/blocks/executions',
             query: $query,
+            modelClass: StoredBlockExecution::class,
             options: $options,
         );
-        return array_map(fn ($item) => StoredBlockExecution::fromArray($item), $response['data'] ?? []);
     }
 
     /**

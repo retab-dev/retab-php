@@ -9,7 +9,7 @@ namespace Retab\Service;
 use Retab\Resource\Workflow;
 use Retab\Resource\WorkflowDiagnosisResponse;
 
-class WorkflowService
+class Workflows
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
@@ -23,7 +23,7 @@ class WorkflowService
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Items per page Defaults to 10.
-     * @param \Retab\Resource\ParsOrder $order Defaults to "desc".
+     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
      * @param string|null $sortBy Defaults to "updated_at".
      * @return \Retab\PaginatedResponse<\Retab\Resource\Workflow>
      * @throws \Retab\Exception\RetabException
@@ -32,7 +32,7 @@ class WorkflowService
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        \Retab\Resource\ParsOrder $order = \Retab\Resource\ParsOrder::Desc,
+        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
         ?string $sortBy = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\PaginatedResponse {

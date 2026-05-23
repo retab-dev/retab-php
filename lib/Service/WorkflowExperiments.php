@@ -17,24 +17,42 @@ class WorkflowExperiments
 
     /**
      * List Experiments
+     *
+     * List experiments under one workflow with cursor pagination.
+     *
+     * The enrichment passes (latest-run snapshot, block info, drift detection)
+     * run on the paginated page, not the full collection — so they scale with
+     * ``limit``, not with the total experiment count under the workflow.
      * @param string $workflowId
-     * @return list<\Retab\Resource\WorkflowExperiment>
+     * @param string|null $before
+     * @param string|null $after
+     * @param int|null $limit Defaults to 50.
+     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
+     * @return \Retab\PaginatedResponse<\Retab\Resource\WorkflowExperiment>
      * @throws \Retab\Exception\RetabException
      */
     public function list(
         string $workflowId,
+        ?string $before = null,
+        ?string $after = null,
+        ?int $limit = null,
+        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
         ?\Retab\RequestOptions $options = null,
-    ): array {
-        $query = [
+    ): \Retab\PaginatedResponse {
+        $query = array_filter([
             'workflow_id' => $workflowId,
-        ];
-        $response = $this->client->request(
+            'before' => $before,
+            'after' => $after,
+            'limit' => $limit,
+            'order' => $order->value,
+        ], fn ($v) => $v !== null);
+        return $this->client->requestPage(
             method: 'GET',
             path: 'v1/workflows/experiments',
             query: $query,
+            modelClass: WorkflowExperiment::class,
             options: $options,
         );
-        return array_map(fn ($item) => WorkflowExperiment::fromArray($item), $response['data'] ?? []);
     }
 
     /**

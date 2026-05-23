@@ -7,9 +7,9 @@ declare(strict_types=1);
 namespace Retab\Service;
 
 use Retab\Resource\Extraction;
-use Retab\Resource\SourceResponse;
+use Retab\Resource\SourcesResponse;
 
-class ExtractionService
+class Extractions
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
@@ -27,7 +27,7 @@ class ExtractionService
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Defaults to 10.
-     * @param \Retab\Resource\ParsOrder $order Defaults to "desc".
+     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
      * @param string|null $filename
      * @param string|null $filenameRegex Deprecated alias for prefix filename filtering. Regex patterns are rejected.
      * @param string|null $filenameContains Plain text filename text search powered by Atlas Search when available.
@@ -42,7 +42,7 @@ class ExtractionService
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        \Retab\Resource\ParsOrder $order = \Retab\Resource\ParsOrder::Desc,
+        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
         ?string $filename = null,
         ?string $filenameRegex = null,
         ?string $filenameContains = null,
@@ -170,18 +170,18 @@ class ExtractionService
      * contains citation content, surrounding context, and a format-specific
      * anchor (bbox for PDFs, cell ref for spreadsheets, text span for plain text, etc.).
      * @param string $extractionId
-     * @return \Retab\Resource\SourceResponse
+     * @return \Retab\Resource\SourcesResponse
      * @throws \Retab\Exception\RetabException
      */
     public function sources(
         string $extractionId,
         ?\Retab\RequestOptions $options = null,
-    ): \Retab\Resource\SourceResponse {
+    ): \Retab\Resource\SourcesResponse {
         $response = $this->client->request(
             method: 'GET',
             path: 'v1/extractions/' . rawurlencode($extractionId) . '/sources',
             options: $options,
         );
-        return SourceResponse::fromArray($response);
+        return SourcesResponse::fromArray($response);
     }
 }

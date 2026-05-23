@@ -6,19 +6,19 @@ declare(strict_types=1);
 
 namespace Retab;
 
-use Retab\Service\ClassificationService;
-use Retab\Service\EditService;
+use Retab\Service\Classifications;
+use Retab\Service\Edits;
 use Retab\Service\EditTemplates;
 use Retab\Service\ExperimentRunMetrics;
 use Retab\Service\ExperimentRunResults;
 use Retab\Service\ExperimentRuns;
-use Retab\Service\ExtractionService;
-use Retab\Service\FileService;
+use Retab\Service\Extractions;
+use Retab\Service\Files;
 use Retab\Service\Jobs;
-use Retab\Service\Pars;
-use Retab\Service\PartitionService;
-use Retab\Service\Schema;
-use Retab\Service\SplitService;
+use Retab\Service\Parses;
+use Retab\Service\Partitions;
+use Retab\Service\Schemas;
+use Retab\Service\Splits;
 use Retab\Service\WorkflowArtifacts;
 use Retab\Service\WorkflowBlockExecutions;
 use Retab\Service\WorkflowBlocks;
@@ -27,7 +27,7 @@ use Retab\Service\WorkflowExperiments;
 use Retab\Service\WorkflowReviews;
 use Retab\Service\WorkflowReviewVersions;
 use Retab\Service\WorkflowRuns;
-use Retab\Service\WorkflowService;
+use Retab\Service\Workflows;
 use Retab\Service\WorkflowSpecs;
 use Retab\Service\WorkflowSteps;
 use Retab\Service\WorkflowTestRunResults;
@@ -59,13 +59,13 @@ class Client
     {
         self::$clientId = $id;
     }
-    private ?Service\Schema $schemas = null;
-    private ?Service\ExtractionService $extractions = null;
-    private ?Service\ClassificationService $classifications = null;
-    private ?Service\Pars $parses = null;
-    private ?Service\PartitionService $partitions = null;
-    private ?Service\SplitService $splits = null;
-    private ?Service\FileService $files = null;
+    private ?Service\Schemas $schemas = null;
+    private ?Service\Extractions $extractions = null;
+    private ?Service\Classifications $classifications = null;
+    private ?Service\Parses $parses = null;
+    private ?Service\Partitions $partitions = null;
+    private ?Service\Splits $splits = null;
+    private ?Service\Files $files = null;
     private ?Service\WorkflowRuns $workflowRuns = null;
     private ?Service\WorkflowSteps $workflowSteps = null;
     private ?Service\WorkflowReviews $workflowReviews = null;
@@ -81,10 +81,10 @@ class Client
     private ?Service\ExperimentRunMetrics $experimentRunMetrics = null;
     private ?Service\WorkflowExperiments $workflowExperiments = null;
     private ?Service\WorkflowBlockExecutions $workflowBlockExecutions = null;
-    private ?Service\WorkflowService $workflows = null;
+    private ?Service\Workflows $workflows = null;
     private ?Service\WorkflowSpecs $workflowSpecs = null;
     private ?Service\EditTemplates $editTemplates = null;
-    private ?Service\EditService $edits = null;
+    private ?Service\Edits $edits = null;
     private ?Service\Jobs $jobs = null;
 
     public function __construct(
@@ -101,39 +101,39 @@ class Client
         $this->httpClient = new HttpClient($apiKey, $clientId, $baseUrl, $timeout, $maxRetries, $handler, $userAgent);
     }
 
-    public function schemas(): Schema
+    public function schemas(): Schemas
     {
-        return $this->schemas ??= new Service\Schema($this->httpClient);
+        return $this->schemas ??= new Service\Schemas($this->httpClient);
     }
 
-    public function extractions(): ExtractionService
+    public function extractions(): Extractions
     {
-        return $this->extractions ??= new Service\ExtractionService($this->httpClient);
+        return $this->extractions ??= new Service\Extractions($this->httpClient);
     }
 
-    public function classifications(): ClassificationService
+    public function classifications(): Classifications
     {
-        return $this->classifications ??= new Service\ClassificationService($this->httpClient);
+        return $this->classifications ??= new Service\Classifications($this->httpClient);
     }
 
-    public function parses(): Pars
+    public function parses(): Parses
     {
-        return $this->parses ??= new Service\Pars($this->httpClient);
+        return $this->parses ??= new Service\Parses($this->httpClient);
     }
 
-    public function partitions(): PartitionService
+    public function partitions(): Partitions
     {
-        return $this->partitions ??= new Service\PartitionService($this->httpClient);
+        return $this->partitions ??= new Service\Partitions($this->httpClient);
     }
 
-    public function splits(): SplitService
+    public function splits(): Splits
     {
-        return $this->splits ??= new Service\SplitService($this->httpClient);
+        return $this->splits ??= new Service\Splits($this->httpClient);
     }
 
-    public function files(): FileService
+    public function files(): Files
     {
-        return $this->files ??= new Service\FileService($this->httpClient);
+        return $this->files ??= new Service\Files($this->httpClient);
     }
 
     public function workflowRuns(): WorkflowRuns
@@ -211,9 +211,9 @@ class Client
         return $this->workflowBlockExecutions ??= new Service\WorkflowBlockExecutions($this->httpClient);
     }
 
-    public function workflows(): WorkflowService
+    public function workflows(): Workflows
     {
-        return $this->workflows ??= new Service\WorkflowService($this->httpClient);
+        return $this->workflows ??= new Service\Workflows($this->httpClient);
     }
 
     public function workflowSpecs(): WorkflowSpecs
@@ -226,9 +226,9 @@ class Client
         return $this->editTemplates ??= new Service\EditTemplates($this->httpClient);
     }
 
-    public function edits(): EditService
+    public function edits(): Edits
     {
-        return $this->edits ??= new Service\EditService($this->httpClient);
+        return $this->edits ??= new Service\Edits($this->httpClient);
     }
 
     public function jobs(): Jobs

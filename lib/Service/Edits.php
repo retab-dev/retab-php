@@ -10,19 +10,33 @@ use Retab\Resource\Edit;
 
 class Edits
 {
+    private ?EditTemplates $templates = null;
+
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
+    ) {}
+
+    public function templates(): EditTemplates
+    {
+        return $this->templates ??= new EditTemplates($this->client);
     }
 
     /**
      * List Edits
+     *
+     * List edits.
+     *
+     * Returns a paginated list of edits. Filter by `filename` (case-insensitive
+     * prefix match), `template_id`, and a `from_date`/`to_date` creation range
+     * (each `YYYY-MM-DD`). Page with `before`/`after` cursors, `limit`, and
+     * `order`; an invalid date format responds with `400`.
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Defaults to 10.
-     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
+     * @param \Retab\Resource\EditsOrder $order Defaults to "desc".
      * @param string|null $filename
      * @param string|null $templateId
+     * @param \Retab\Resource\EditStatus|null $status
      * @param string|null $fromDate
      * @param string|null $toDate
      * @return \Retab\PaginatedResponse<\Retab\Resource\Edit>
@@ -32,9 +46,10 @@ class Edits
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
+        \Retab\Resource\EditsOrder $order = \Retab\Resource\EditsOrder::Desc,
         ?string $filename = null,
         ?string $templateId = null,
+        ?\Retab\Resource\EditStatus $status = null,
         ?string $fromDate = null,
         ?string $toDate = null,
         ?\Retab\RequestOptions $options = null,
@@ -46,9 +61,10 @@ class Edits
             'order' => $order->value,
             'filename' => $filename,
             'template_id' => $templateId,
+            'status' => $status?->value,
             'from_date' => $fromDate,
             'to_date' => $toDate,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
             path: 'v1/edits',
@@ -60,12 +76,21 @@ class Edits
 
     /**
      * Create Edit
+     *
+     * Create an edit.
+     *
+     * Fills the form fields of a document according to `instructions` and renders
+     * the values into a PDF. Provide exactly one of `document` (a PDF, DOCX, XLSX,
+     * or PPTX) or `template_id` (an existing edit template) — supplying both or
+     * neither responds with `400`. Returns the created edit with the filled form
+     * data and rendered document; responds with `201`.
      * @param string $instructions Instructions describing how to fill the form fields.
-     * @param \Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string}|null $document Input document (PDF, DOCX, XLSX, or PPTX). Mutually exclusive with template_id.
+     * @param \Retab\Resource\FileRef|\Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string}|array{id: string, filename?: string, mime_type?: string}|null $document Input document (PDF, DOCX, XLSX, or PPTX). Mutually exclusive with template_id.
      * @param string|null $templateId EditTemplate id to fill. When provided, uses the template's pre-defined form fields and empty PDF. Mutually exclusive with document.
      * @param string|null $model The model to use for edit inference.
      * @param \Retab\Resource\EditConfig|null $config Edit configuration (rendering options).
      * @param bool|null $bustCache If true, skip the LLM cache and force a fresh completion.
+     * @param bool|null $background If true, run asynchronously: returns immediately with status 'queued' and an empty output. Poll GET /v1/<primitive>/{id} until status is terminal. Mutually exclusive with stream.
      * @return \Retab\Resource\Edit
      * @throws \Retab\Exception\RetabException
      */
@@ -76,10 +101,11 @@ class Edits
         ?string $model = null,
         ?\Retab\Resource\EditConfig $config = null,
         ?bool $bustCache = null,
+        ?bool $background = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\Edit {
         if ($document !== null) {
-            $document = \Retab\Resource\MimeDataCoerce::coerce($document);
+            $document = \Retab\Resource\MimeDataCoerce::coerce($document, $this->client);
         }
         $body = array_filter([
             'instructions' => $instructions,
@@ -88,7 +114,8 @@ class Edits
             'model' => $model,
             'config' => $config,
             'bust_cache' => $bustCache,
-        ], fn ($v) => $v !== null);
+            'background' => $background,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/edits',
@@ -100,17 +127,29 @@ class Edits
 
     /**
      * Get Edit
+     *
+     * Retrieve an edit.
+     *
+     * Fetches a single edit by its `edit_id`. Returns the edit with its filled
+     * form data and rendered document; responds with `404` if no edit with that
+     * id exists.
      * @param string $editId
+     * @param bool|null $includeOutput When false, returns a cheap status-only projection (no output), served from cache for in-flight background runs. Defaults to true.
      * @return \Retab\Resource\Edit
      * @throws \Retab\Exception\RetabException
      */
     public function get(
         string $editId,
+        ?bool $includeOutput = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\Edit {
+        $query = array_filter([
+            'include_output' => $includeOutput,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'GET',
             path: 'v1/edits/' . rawurlencode($editId),
+            query: $query,
             options: $options,
         );
         return Edit::fromArray($response);
@@ -118,6 +157,11 @@ class Edits
 
     /**
      * Delete Edit
+     *
+     * Delete an edit.
+     *
+     * Permanently deletes the edit identified by `edit_id`. Returns `204` on
+     * success, or `404` if no edit with that id exists.
      * @param string $editId
      * @return void
      * @throws \Retab\Exception\RetabException
@@ -131,5 +175,23 @@ class Edits
             path: 'v1/edits/' . rawurlencode($editId),
             options: $options,
         );
+    }
+
+    /**
+     * Cancel Edit
+     * @param string $editId
+     * @return \Retab\Resource\Edit
+     * @throws \Retab\Exception\RetabException
+     */
+    public function createEditCancel(
+        string $editId,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\Edit {
+        $response = $this->client->request(
+            method: 'POST',
+            path: 'v1/edits/' . rawurlencode($editId) . '/cancel',
+            options: $options,
+        );
+        return Edit::fromArray($response);
     }
 }

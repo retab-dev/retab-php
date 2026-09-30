@@ -6,14 +6,71 @@ declare(strict_types=1);
 
 namespace Retab\Service;
 
+use Retab\Resource\DeclarativeApplyResponse;
+use Retab\Resource\DeclarativePlanResponse;
 use Retab\Resource\Workflow;
-use Retab\Resource\WorkflowDiagnosisResponse;
+use Retab\Resource\WorkflowGraphVersion;
+use Retab\Resource\WorkflowGraphVersionDiff;
 
 class Workflows
 {
+    private ?WorkflowArtifacts $artifacts = null;
+    private ?WorkflowBlocks $blocks = null;
+    private ?WorkflowEdges $edges = null;
+    private ?WorkflowEvals $evals = null;
+    private ?WorkflowExperiments $experiments = null;
+    private ?WorkflowReviews $reviews = null;
+    private ?WorkflowRuns $runs = null;
+    private ?WorkflowSpec $spec = null;
+    private ?WorkflowSteps $steps = null;
+
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
+    ) {}
+
+    public function artifacts(): WorkflowArtifacts
+    {
+        return $this->artifacts ??= new WorkflowArtifacts($this->client);
+    }
+
+    public function blocks(): WorkflowBlocks
+    {
+        return $this->blocks ??= new WorkflowBlocks($this->client);
+    }
+
+    public function edges(): WorkflowEdges
+    {
+        return $this->edges ??= new WorkflowEdges($this->client);
+    }
+
+    public function evals(): WorkflowEvals
+    {
+        return $this->evals ??= new WorkflowEvals($this->client);
+    }
+
+    public function experiments(): WorkflowExperiments
+    {
+        return $this->experiments ??= new WorkflowExperiments($this->client);
+    }
+
+    public function reviews(): WorkflowReviews
+    {
+        return $this->reviews ??= new WorkflowReviews($this->client);
+    }
+
+    public function runs(): WorkflowRuns
+    {
+        return $this->runs ??= new WorkflowRuns($this->client);
+    }
+
+    public function spec(): WorkflowSpec
+    {
+        return $this->spec ??= new WorkflowSpec($this->client);
+    }
+
+    public function steps(): WorkflowSteps
+    {
+        return $this->steps ??= new WorkflowSteps($this->client);
     }
 
     /**
@@ -23,8 +80,9 @@ class Workflows
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Items per page Defaults to 10.
-     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
+     * @param \Retab\Resource\EditsOrder $order Defaults to "desc".
      * @param string|null $sortBy Defaults to "updated_at".
+     * @param string|null $projectId Only return workflows belonging to this project. Use the shared project's id to list the organization's shared workflows.
      * @return \Retab\PaginatedResponse<\Retab\Resource\Workflow>
      * @throws \Retab\Exception\RetabException
      */
@@ -32,8 +90,9 @@ class Workflows
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
+        \Retab\Resource\EditsOrder $order = \Retab\Resource\EditsOrder::Desc,
         ?string $sortBy = null,
+        ?string $projectId = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\PaginatedResponse {
         $query = array_filter([
@@ -42,7 +101,8 @@ class Workflows
             'limit' => $limit,
             'order' => $order->value,
             'sort_by' => $sortBy,
-        ], fn ($v) => $v !== null);
+            'project_id' => $projectId,
+        ], fn($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
             path: 'v1/workflows',
@@ -57,14 +117,15 @@ class Workflows
      *
      * Create a new workflow.
      *
-     * The workflow starts unpublished and is scaffolded with a default
-     * "Document" input block in the live block collection.
+     * The workflow starts unpublished with a default "Document" input block.
      * @param string|null $name The name of the workflow
      * @param string|null $description Description of the workflow
+     * @param string $projectId Project that should own this workflow.
      * @return \Retab\Resource\Workflow
      * @throws \Retab\Exception\RetabException
      */
     public function create(
+        string $projectId,
         ?string $name = null,
         ?string $description = null,
         ?\Retab\RequestOptions $options = null,
@@ -72,11 +133,191 @@ class Workflows
         $body = array_filter([
             'name' => $name,
             'description' => $description,
-        ], fn ($v) => $v !== null);
+            'project_id' => $projectId,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/workflows',
             body: $body,
+            options: $options,
+        );
+        return Workflow::fromArray($response);
+    }
+
+    /**
+     * Apply Workflow Spec
+     *
+     * Create a new workflow from a declarative YAML spec.
+     *
+     * The workflow id in the YAML is treated as source context, not as the target
+     * workflow id. Use `POST /v1/workflows/{workflow_id}/spec/apply` to modify an
+     * existing workflow draft.
+     * @param string $yamlDefinition Workflow YAML definition
+     * @param string|null $projectId Project that should own a workflow created from this spec. Required when applying a spec that creates a new workflow.
+     * @param string|null $workflowId When set, targets the existing-resource route.
+     * @return \Retab\Resource\DeclarativeApplyResponse
+     * @throws \Retab\Exception\RetabException
+     */
+    public function apply(
+        string $yamlDefinition,
+        ?string $projectId = null,
+        ?string $workflowId = null,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\DeclarativeApplyResponse {
+        $path = $workflowId !== null && $workflowId !== ''
+            ? 'v1/workflows/' . rawurlencode($workflowId) . '/spec/apply'
+            : 'v1/workflows/spec/apply';
+        $body = array_filter([
+            'yaml_definition' => $yamlDefinition,
+            'project_id' => $projectId,
+        ], fn($v) => $v !== null);
+        $response = $this->client->request(
+            method: 'POST',
+            path: $path,
+            body: $body,
+            options: $options,
+        );
+        return DeclarativeApplyResponse::fromArray($response);
+    }
+
+    /**
+     * Plan Workflow Spec
+     *
+     * Preview the changes a declarative YAML spec would make to the draft workflow.
+     *
+     * Compares the spec against the current draft and returns the resulting
+     * changes without applying them. A spec that already matches the draft
+     * plans as a no-op.
+     * @param string $yamlDefinition Workflow YAML definition
+     * @param string|null $projectId Project that should own a workflow created from this spec. Required when applying a spec that creates a new workflow.
+     * @param string|null $workflowId When set, targets the existing-resource route.
+     * @return \Retab\Resource\DeclarativePlanResponse
+     * @throws \Retab\Exception\RetabException
+     */
+    public function plan(
+        string $yamlDefinition,
+        ?string $projectId = null,
+        ?string $workflowId = null,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\DeclarativePlanResponse {
+        $path = $workflowId !== null && $workflowId !== ''
+            ? 'v1/workflows/' . rawurlencode($workflowId) . '/spec/plan'
+            : 'v1/workflows/spec/plan';
+        $body = array_filter([
+            'yaml_definition' => $yamlDefinition,
+            'project_id' => $projectId,
+        ], fn($v) => $v !== null);
+        $response = $this->client->request(
+            method: 'POST',
+            path: $path,
+            body: $body,
+            options: $options,
+        );
+        return DeclarativePlanResponse::fromArray($response);
+    }
+
+    /**
+     * List Workflow Versions
+     * @param string $workflowId Workflow whose versions to list
+     * @param string|null $before Workflow version cursor before
+     * @param string|null $after Workflow version cursor after
+     * @param int|null $limit Maximum number of versions to return Defaults to 50.
+     * @return \Retab\PaginatedResponse<\Retab\Resource\WorkflowGraphVersion>
+     * @throws \Retab\Exception\RetabException
+     */
+    public function listVersions(
+        string $workflowId,
+        ?string $before = null,
+        ?string $after = null,
+        ?int $limit = null,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\PaginatedResponse {
+        $query = array_filter([
+            'workflow_id' => $workflowId,
+            'before' => $before,
+            'after' => $after,
+            'limit' => $limit,
+        ], fn($v) => $v !== null);
+        return $this->client->requestPage(
+            method: 'GET',
+            path: 'v1/workflows/versions',
+            query: $query,
+            modelClass: WorkflowGraphVersion::class,
+            options: $options,
+        );
+    }
+
+    /**
+     * Diff Workflow Versions
+     * @param string $workflowId Workflow whose versions to diff
+     * @param string $fromWorkflowVersionId Base workflow version ID
+     * @param string $toWorkflowVersionId Target workflow version ID
+     * @return \Retab\Resource\WorkflowGraphVersionDiff
+     * @throws \Retab\Exception\RetabException
+     */
+    public function listDiff(
+        string $workflowId,
+        string $fromWorkflowVersionId,
+        string $toWorkflowVersionId,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\WorkflowGraphVersionDiff {
+        $query = [
+            'workflow_id' => $workflowId,
+            'from_workflow_version_id' => $fromWorkflowVersionId,
+            'to_workflow_version_id' => $toWorkflowVersionId,
+        ];
+        $response = $this->client->request(
+            method: 'GET',
+            path: 'v1/workflows/versions/diff',
+            query: $query,
+            options: $options,
+        );
+        return WorkflowGraphVersionDiff::fromArray($response);
+    }
+
+    /**
+     * Get Workflow Version
+     * @param string $workflowVersionId
+     * @param string $workflowId Workflow that owns the version. Workflow version ids are content-addressed by executable spec, so workflow_id disambiguates identical specs reused across workflows.
+     * @return \Retab\Resource\WorkflowGraphVersion
+     * @throws \Retab\Exception\RetabException
+     */
+    public function getVersion(
+        string $workflowVersionId,
+        string $workflowId,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\WorkflowGraphVersion {
+        $query = [
+            'workflow_id' => $workflowId,
+        ];
+        $response = $this->client->request(
+            method: 'GET',
+            path: 'v1/workflows/versions/' . rawurlencode($workflowVersionId),
+            query: $query,
+            options: $options,
+        );
+        return WorkflowGraphVersion::fromArray($response);
+    }
+
+    /**
+     * Restore Workflow Version
+     * @param string $workflowVersionId
+     * @param string $workflowId Workflow to restore into a new draft
+     * @return \Retab\Resource\Workflow
+     * @throws \Retab\Exception\RetabException
+     */
+    public function createVersionRestore(
+        string $workflowVersionId,
+        string $workflowId,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\Workflow {
+        $query = [
+            'workflow_id' => $workflowId,
+        ];
+        $response = $this->client->request(
+            method: 'POST',
+            path: 'v1/workflows/versions/' . rawurlencode($workflowVersionId) . '/restore',
+            query: $query,
             options: $options,
         );
         return Workflow::fromArray($response);
@@ -123,7 +364,7 @@ class Workflows
         $body = array_filter([
             'name' => $name,
             'description' => $description,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'PATCH',
             path: 'v1/workflows/' . rawurlencode($workflowId),
@@ -138,11 +379,8 @@ class Workflows
      *
      * Delete a workflow and all its associated entities.
      *
-     * This deletes:
-     * - The workflow document
-     * - All blocks and edges (live collections)
-     * - All block and edge snapshots
-     * - All workflow snapshots
+     * This deletes the workflow, all of its blocks and edges, and all of their
+     * snapshots.
      * @param string $workflowId
      * @return void
      * @throws \Retab\Exception\RetabException
@@ -159,39 +397,25 @@ class Workflows
     }
 
     /**
-     * Diagnose Workflow Graph
+     * Discard Draft Workflow
      *
-     * Diagnose a workflow graph payload for the given workflow.
+     * Discard all draft changes and restore the workflow to its published state.
      *
-     * When the request omits ``blocks`` and ``edges`` (both ``None``) the route
-     * loads the persisted draft from MongoDB. When either is provided (including
-     * an explicit empty list) the request body is diagnosed as-is.
+     * The workflow must already be published.
      * @param string $workflowId
-     * @param array<\Retab\Resource\WorkflowConfigBlock>|null $blocks Blocks to diagnose; if omitted, the persisted draft is loaded server-side
-     * @param array<\Retab\Resource\WorkflowConfigEdge>|null $edges Edges to diagnose; if omitted, the persisted draft is loaded server-side
-     * @param bool|null $rePropagate Recompute derived schemas before validating the graph
-     * @return \Retab\Resource\WorkflowDiagnosisResponse
+     * @return \Retab\Resource\Workflow
      * @throws \Retab\Exception\RetabException
      */
-    public function diagnose(
+    public function discardDraft(
         string $workflowId,
-        ?array $blocks = null,
-        ?array $edges = null,
-        ?bool $rePropagate = null,
         ?\Retab\RequestOptions $options = null,
-    ): \Retab\Resource\WorkflowDiagnosisResponse {
-        $body = array_filter([
-            'blocks' => $blocks,
-            'edges' => $edges,
-            're_propagate' => $rePropagate,
-        ], fn ($v) => $v !== null);
+    ): \Retab\Resource\Workflow {
         $response = $this->client->request(
             method: 'POST',
-            path: 'v1/workflows/' . rawurlencode($workflowId) . '/diagnose-graph',
-            body: $body,
+            path: 'v1/workflows/' . rawurlencode($workflowId) . '/discard-draft',
             options: $options,
         );
-        return WorkflowDiagnosisResponse::fromArray($response);
+        return Workflow::fromArray($response);
     }
 
     /**
@@ -213,7 +437,7 @@ class Workflows
     ): \Retab\Resource\Workflow {
         $body = array_filter([
             'description' => $description,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/workflows/' . rawurlencode($workflowId) . '/publish',

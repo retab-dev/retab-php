@@ -1,1 +1,16 @@
-{}
+{
+  "workflow_id": "workflow_id_01234",
+  "documents": {
+    "key": {
+      "filename": "Test",
+      "url": "https://example.com"
+    }
+  },
+  "json_inputs": {
+    "key": {}
+  },
+  "version": "test_version",
+  "metadata": {
+    "key": "test_value"
+  }
+}

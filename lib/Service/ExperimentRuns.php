@@ -13,26 +13,30 @@ class ExperimentRuns
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
-    }
+    ) {}
 
     /**
      * List Experiment Runs
+     *
+     * List experiment runs.
+     *
+     * Optionally filter by `workflow_id`, `experiment_id`, `block_id`,
+     * `status`/`exclude_status`, `trigger_type`, and a `from_date`/`to_date`
+     * window. Returns a cursor-paginated list ordered by `sort_by` (default
+     * newest first).
      * @param string|null $workflowId
      * @param string|null $experimentId
      * @param string|null $blockId
      * @param \Retab\Resource\WorkflowExperimentsStatus|null $status
-     * @param string|null $statuses
      * @param \Retab\Resource\WorkflowExperimentsStatus|null $excludeStatus
      * @param string|null $triggerType
-     * @param string|null $triggerTypes
      * @param string|null $fromDate
      * @param string|null $toDate
      * @param string|null $sortBy Defaults to "created_at".
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Defaults to 20.
-     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
+     * @param \Retab\Resource\EditsOrder $order Defaults to "desc".
      * @return \Retab\PaginatedResponse<\Retab\Resource\ExperimentRun>
      * @throws \Retab\Exception\RetabException
      */
@@ -41,17 +45,15 @@ class ExperimentRuns
         ?string $experimentId = null,
         ?string $blockId = null,
         ?\Retab\Resource\WorkflowExperimentsStatus $status = null,
-        ?string $statuses = null,
         ?\Retab\Resource\WorkflowExperimentsStatus $excludeStatus = null,
         ?string $triggerType = null,
-        ?string $triggerTypes = null,
         ?string $fromDate = null,
         ?string $toDate = null,
         ?string $sortBy = null,
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
+        \Retab\Resource\EditsOrder $order = \Retab\Resource\EditsOrder::Desc,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\PaginatedResponse {
         $query = array_filter([
@@ -59,10 +61,8 @@ class ExperimentRuns
             'experiment_id' => $experimentId,
             'block_id' => $blockId,
             'status' => $status?->value,
-            'statuses' => $statuses,
             'exclude_status' => $excludeStatus?->value,
             'trigger_type' => $triggerType,
-            'trigger_types' => $triggerTypes,
             'from_date' => $fromDate,
             'to_date' => $toDate,
             'sort_by' => $sortBy,
@@ -70,7 +70,7 @@ class ExperimentRuns
             'after' => $after,
             'limit' => $limit,
             'order' => $order->value,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
             path: 'v1/workflows/experiments/runs',
@@ -85,25 +85,26 @@ class ExperimentRuns
      *
      * Create an experiment run.
      *
-     * The ``experiment_id`` and (optionally) ``workflow_id`` live in the
-     * body — flat-resource shape per meta-pattern-blueprint §1. When
-     * ``workflow_id`` is absent the experiment's stored workflow is used;
-     * when present it must match (the validation rejects mismatched pairs
-     * with 404, defending against confused-deputy callers).
+     * The `experiment_id` and an optional `workflow_id` are supplied in the body.
+     * When `workflow_id` is omitted, the experiment's workflow is used; when
+     * supplied, it must match that workflow or the request is rejected with 404.
      * @param string $experimentId The experiment to create a run for.
      * @param string|null $workflowId Optional. When omitted, the workflow is derived from the experiment record. When supplied, must match the experiment's workflow_id (404 otherwise).
+     * @param string|null $planToken Optional short-lived token returned by the run-plan preview. When supplied, run creation rejects if the current plan no longer matches the preview.
      * @return \Retab\Resource\ExperimentRun
      * @throws \Retab\Exception\RetabException
      */
     public function create(
         string $experimentId,
         ?string $workflowId = null,
+        ?string $planToken = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\ExperimentRun {
         $body = array_filter([
             'experiment_id' => $experimentId,
             'workflow_id' => $workflowId,
-        ], fn ($v) => $v !== null);
+            'plan_token' => $planToken,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/workflows/experiments/runs',
@@ -115,6 +116,12 @@ class ExperimentRuns
 
     /**
      * Get Experiment Run
+     *
+     * Retrieve a single experiment run.
+     *
+     * Identified by `run_id`. Returns the run with its lifecycle status, timing,
+     * score, and document progress counts. Returns 404 if no run with that ID
+     * exists.
      * @param string $runId
      * @return \Retab\Resource\ExperimentRun
      * @throws \Retab\Exception\RetabException
@@ -133,6 +140,15 @@ class ExperimentRuns
 
     /**
      * Cancel Experiment Run
+     *
+     * Cancel an experiment run.
+     *
+     * Identified by `run_id`. Cancels the run and any of its pending or
+     * in-flight results, returning the run's new `cancelled` lifecycle.
+     * Cancelling an already-cancelled run is idempotent and succeeds. Returns
+     * 404 if the run does not exist, or if it has already reached a terminal
+     * `completed` or `error` status — only a pending, queued, or running run
+     * can be cancelled.
      * @param string $runId
      * @return \Retab\Resource\CancelWorkflowExperimentRunResponse
      * @throws \Retab\Exception\RetabException

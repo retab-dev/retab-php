@@ -6,12 +6,19 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
+/**
+ * Request to run a structured extraction on a single document.
+ *
+ * Extends the base extraction request with the `document` to process (either
+ * inline content or a reference to a previously uploaded file) and a `stream`
+ * flag that controls whether results are returned incrementally.
+ */
 readonly class ExtractionRequest implements \JsonSerializable
 {
     use JsonSerializableTrait;
 
     public function __construct(
-        public MimeData|FileRef $document,
+        public MimeData $document,
         /**
          * JSON schema describing the structured output
          * @var array<string, mixed>
@@ -19,8 +26,6 @@ readonly class ExtractionRequest implements \JsonSerializable
         public array $jsonSchema,
         /** The model to use for the extraction */
         public ?string $model = null,
-        /** Resolution of the image sent to the LLM */
-        public ?int $imageResolutionDpi = null,
         /** Free-form instructions appended to the system prompt to steer the extraction. */
         public ?string $instructions = null,
         /** Number of consensus extraction runs to perform. Uses deterministic single-pass when set to 1. */
@@ -38,8 +43,11 @@ readonly class ExtractionRequest implements \JsonSerializable
         /** If true, skip the LLM cache and force a fresh completion */
         public ?bool $bustCache = null,
         public ?bool $stream = null,
-    ) {
-    }
+        /** If true, run asynchronously: returns immediately with status 'queued' and an empty output. Poll GET /v1/<primitive>/{id} until status is terminal. Mutually exclusive with stream. */
+        public ?bool $background = null,
+        /** Optimizes for accuracy over latency in documents with very large arrays. */
+        public ?bool $deepExtraction = null,
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -53,16 +61,17 @@ readonly class ExtractionRequest implements \JsonSerializable
             }
         }
         return new self(
-            document: $data['document'],
+            document: MimeData::fromArray($data['document']),
             jsonSchema: $data['json_schema'],
             model: $data['model'] ?? null,
-            imageResolutionDpi: $data['image_resolution_dpi'] ?? null,
             instructions: $data['instructions'] ?? null,
             nConsensus: $data['n_consensus'] ?? null,
             metadata: $data['metadata'] ?? null,
             additionalMessages: $data['additional_messages'] ?? null,
             bustCache: $data['bust_cache'] ?? null,
             stream: $data['stream'] ?? null,
+            background: $data['background'] ?? null,
+            deepExtraction: $data['deep_extraction'] ?? null,
         );
     }
 
@@ -73,13 +82,14 @@ readonly class ExtractionRequest implements \JsonSerializable
             'document' => $this->document->toArray(),
             'json_schema' => $this->jsonSchema,
             'model' => $this->model,
-            'image_resolution_dpi' => $this->imageResolutionDpi,
             'instructions' => $this->instructions,
             'n_consensus' => $this->nConsensus,
             'metadata' => $this->metadata,
             'additional_messages' => $this->additionalMessages,
             'bust_cache' => $this->bustCache,
             'stream' => $this->stream,
+            'background' => $this->background,
+            'deep_extraction' => $this->deepExtraction,
         ];
     }
 }

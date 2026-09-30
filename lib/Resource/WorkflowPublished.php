@@ -15,10 +15,9 @@ readonly class WorkflowPublished implements \JsonSerializable
         public ?string $versionId = null,
         /** When the workflow was last published */
         public ?\DateTimeImmutable $publishedAt = null,
-        /** Release note attached to the currently published version. Echoes the ``description`` body passed to ``POST /v1/workflows/{id}/publish`` so the caller can confirm it was stored without a separate fetch. */
+        /** Release note attached to the currently published version. Echoes the `description` body passed to `POST /v1/workflows/{id}/publish` so the caller can confirm it was stored without a separate fetch. */
         public ?string $description = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self

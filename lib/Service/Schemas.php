@@ -6,52 +6,45 @@ declare(strict_types=1);
 
 namespace Retab\Service;
 
-use Retab\Resource\PartialSchema;
+use Retab\Resource\SchemaGeneration;
 
 class Schemas
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
-    }
+    ) {}
 
     /**
      * Generate Schema From Examples
      *
      * Generates a JSON Schema from scratch by inferring structure from the content of the provided example documents.
-     * @param array<\Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string}> $documents
+     * @param array<\Retab\Resource\FileRef|\Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string}|array{id: string, filename?: string, mime_type?: string}> $documents
      * @param string|null $model
-     * @param \Retab\Resource\GenerateSchemaRequestReasoningEffort|null $reasoningEffort
      * @param string|null $instructions
-     * @param int|null $imageResolutionDpi Resolution of the image sent to the LLM
-     * @param bool|null $stream
-     * @return \Retab\Resource\PartialSchema
+     * @param bool|null $background If true, run asynchronously: returns immediately with status 'queued'. Poll GET /v1/schemas/generate/{schema_generation_id} until status is terminal.
+     * @return \Retab\Resource\SchemaGeneration
      * @throws \Retab\Exception\RetabException
      */
     public function generate(
         mixed $documents,
         ?string $model = null,
-        ?\Retab\Resource\GenerateSchemaRequestReasoningEffort $reasoningEffort = null,
         ?string $instructions = null,
-        ?int $imageResolutionDpi = null,
-        ?bool $stream = null,
+        ?bool $background = null,
         ?\Retab\RequestOptions $options = null,
-    ): \Retab\Resource\PartialSchema {
-        $documents = array_map([\Retab\Resource\MimeDataCoerce::class, 'coerce'], $documents);
+    ): \Retab\Resource\SchemaGeneration {
+        $documents = array_map(fn($__d) => \Retab\Resource\MimeDataCoerce::coerce($__d, $this->client), $documents);
         $body = array_filter([
             'documents' => $documents,
             'model' => $model,
-            'reasoning_effort' => $reasoningEffort?->value,
             'instructions' => $instructions,
-            'image_resolution_dpi' => $imageResolutionDpi,
-            'stream' => $stream,
-        ], fn ($v) => $v !== null);
+            'background' => $background,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/schemas/generate',
             body: $body,
             options: $options,
         );
-        return PartialSchema::fromArray($response);
+        return SchemaGeneration::fromArray($response);
     }
 }

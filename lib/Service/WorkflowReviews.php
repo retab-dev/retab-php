@@ -11,24 +11,31 @@ use Retab\Resource\SubmitDecisionResponse;
 
 class WorkflowReviews
 {
+    private ?WorkflowReviewVersions $versions = null;
+
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
+    ) {}
+
+    public function versions(): WorkflowReviewVersions
+    {
+        return $this->versions ??= new WorkflowReviewVersions($this->client);
     }
 
     /**
-     * List Reviews Route
+     * List Reviews
      *
-     * List reviews — the review queue, oldest first by ``created_at``.
+     * List reviews — the review queue, oldest first by `created_at`.
      * @param string|null $workflowId
      * @param string|null $runId
      * @param string|null $blockId
      * @param string|null $stepId
      * @param string|null $iterationKey
-     * @param \Retab\Resource\ReviewDecisionStatus $decisionStatus Filter by decision state: pending, approved, rejected, decided, or all. Defaults to "pending".
+     * @param \Retab\Resource\ReviewDecisionStatus $decisionStatus Filter by decision state: pending, approved, rejected, decided, cancelled, or all. Defaults to "pending".
      * @param string|null $before Cursor: only return reviews that appear before this review id in the result order. Use list_metadata.before from the previous page.
      * @param string|null $after Cursor: only return reviews that appear after this review id in the result order. Use list_metadata.after from the previous page.
      * @param int|null $limit Defaults to 50.
+     * @param \Retab\Resource\EditsOrder $order Sort direction over created_at. 'asc' (default) returns the oldest reviews first; 'desc' returns the newest first. Cursor paging with before/after follows the chosen direction. Defaults to "asc".
      * @return \Retab\PaginatedResponse<\Retab\Resource\Review>
      * @throws \Retab\Exception\RetabException
      */
@@ -42,6 +49,7 @@ class WorkflowReviews
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
+        \Retab\Resource\EditsOrder $order = \Retab\Resource\EditsOrder::Asc,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\PaginatedResponse {
         $query = array_filter([
@@ -54,7 +62,8 @@ class WorkflowReviews
             'before' => $before,
             'after' => $after,
             'limit' => $limit,
-        ], fn ($v) => $v !== null);
+            'order' => $order->value,
+        ], fn($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
             path: 'v1/workflows/reviews',
@@ -65,7 +74,7 @@ class WorkflowReviews
     }
 
     /**
-     * Get Review Route
+     * Get Review
      *
      * Read one review's metadata + decision. Versions are fetched separately.
      * @param string $reviewId
@@ -85,27 +94,28 @@ class WorkflowReviews
     }
 
     /**
-     * Approve Review Route
+     * Approve Review
      *
-     * Approve one exact review version and resume the Temporal run.
+     * Approve one review version and resume the workflow run.
      *
-     * Earns its action-verb shape per the four criteria in
-     * ``meta-pattern-blueprint.md`` §2: precondition (``decision is None``),
-     * side-effect dominates (Temporal resume signal), divergent request body vs
-     * ``/reject``, divergent response (carries ``resume_status``).
+     * The response carries `resume_status` so callers can see whether the run
+     * resumed successfully.
      * @param string $reviewId
      * @param string $versionId Exact content-addressed key of the version to approve.
+     * @param array<string>|null $acknowledgedSupersededVersionIds Version ids the caller has seen and is deliberately superseding. A review's versions form a lineage; deciding (or parenting on) a version that is not its only latest version discards every other latest version, so the server refuses that write with a 409 unless every discarded id is listed here. Leave empty unless you are intentionally rolling back to an earlier version or choosing one arm of a forked lineage. The 409 detail names the exact ids to pass.
      * @return \Retab\Resource\SubmitDecisionResponse
      * @throws \Retab\Exception\RetabException
      */
     public function approve(
         string $reviewId,
         string $versionId,
+        ?array $acknowledgedSupersededVersionIds = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\SubmitDecisionResponse {
-        $body = [
+        $body = array_filter([
             'version_id' => $versionId,
-        ];
+            'acknowledged_superseded_version_ids' => $acknowledgedSupersededVersionIds,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/workflows/reviews/' . rawurlencode($reviewId) . '/approve',
@@ -116,12 +126,11 @@ class WorkflowReviews
     }
 
     /**
-     * Reject Review Route
+     * Reject Review
      *
-     * Reject one exact review version and resume the Temporal run.
+     * Reject one review version and resume the workflow run.
      *
-     * ``reason`` is required by the request shape — "rejected without reason"
-     * is unrepresentable on the wire.
+     * A `reason` is required.
      * @param string $reviewId
      * @param string $versionId Exact content-addressed key of the version to reject.
      * @param string $reason Required, non-empty rejection reason.

@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
+/** A short-lived signed link to download a file, with its `filename` and expiry. */
 readonly class FileLink implements \JsonSerializable
 {
     use JsonSerializableTrait;
@@ -19,8 +20,7 @@ readonly class FileLink implements \JsonSerializable
         public string $filename,
         /** Durable Retab MIMEData reference for API reuse */
         public ?MimeData $mimeData = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self

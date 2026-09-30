@@ -30,10 +30,12 @@ readonly class Extraction implements \JsonSerializable
         public array $output,
         /** Number of consensus votes used */
         public ?int $nConsensus = null,
-        /** DPI used to render document images */
-        public ?int $imageResolutionDpi = null,
         /** Free-form instructions supplied with the extraction request. */
         public ?string $instructions = null,
+        /** Lifecycle status. The synchronous path returns 'completed'. Background runs progress pending -> queued -> in_progress -> completed | failed | cancelled. */
+        public ?EditStatus $status = null,
+        /** Error details when a background run fails; null otherwise. Always present so consumers can read it without an existence check. */
+        public ?PrimitiveError $error = null,
         /** Consensus metadata for multi-vote extraction runs */
         public ?ExtractionConsensus $consensus = null,
         /** @var array<string, string>|null */
@@ -41,8 +43,7 @@ readonly class Extraction implements \JsonSerializable
         /** Usage information for the extraction */
         public ?RetabUsage $usage = null,
         public ?\DateTimeImmutable $createdAt = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -65,8 +66,9 @@ readonly class Extraction implements \JsonSerializable
             jsonSchema: $data['json_schema'],
             output: $data['output'],
             nConsensus: $data['n_consensus'] ?? null,
-            imageResolutionDpi: $data['image_resolution_dpi'] ?? null,
             instructions: $data['instructions'] ?? null,
+            status: isset($data['status']) ? EditStatus::from($data['status']) : null,
+            error: isset($data['error']) ? PrimitiveError::fromArray($data['error']) : null,
             consensus: isset($data['consensus']) ? ExtractionConsensus::fromArray($data['consensus']) : null,
             metadata: $data['metadata'] ?? null,
             usage: isset($data['usage']) ? RetabUsage::fromArray($data['usage']) : null,
@@ -84,8 +86,9 @@ readonly class Extraction implements \JsonSerializable
             'json_schema' => $this->jsonSchema,
             'output' => $this->output,
             'n_consensus' => $this->nConsensus,
-            'image_resolution_dpi' => $this->imageResolutionDpi,
             'instructions' => $this->instructions,
+            'status' => $this->status?->value,
+            'error' => $this->error?->toArray(),
             'consensus' => $this->consensus?->toArray(),
             'metadata' => $this->metadata,
             'usage' => $this->usage?->toArray(),

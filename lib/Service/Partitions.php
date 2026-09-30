@@ -12,16 +12,23 @@ class Partitions
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
-    }
+    ) {}
 
     /**
      * List Partitions
+     *
+     * List partitions.
+     *
+     * Returns a paginated list of partitions for the authenticated environment, newest first
+     * by default. Filter by `filename` prefix (case-insensitive) and by a `created_at` window
+     * using `from_date`/`to_date` (`YYYY-MM-DD`). Page through results with `before`/`after`,
+     * `limit`, and `order`.
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Defaults to 10.
-     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
+     * @param \Retab\Resource\EditsOrder $order Defaults to "desc".
      * @param string|null $filename
+     * @param \Retab\Resource\EditStatus|null $status
      * @param string|null $fromDate
      * @param string|null $toDate
      * @return \Retab\PaginatedResponse<\Retab\Resource\Partition>
@@ -31,8 +38,9 @@ class Partitions
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
+        \Retab\Resource\EditsOrder $order = \Retab\Resource\EditsOrder::Desc,
         ?string $filename = null,
+        ?\Retab\Resource\EditStatus $status = null,
         ?string $fromDate = null,
         ?string $toDate = null,
         ?\Retab\RequestOptions $options = null,
@@ -43,9 +51,10 @@ class Partitions
             'limit' => $limit,
             'order' => $order->value,
             'filename' => $filename,
+            'status' => $status?->value,
             'from_date' => $fromDate,
             'to_date' => $toDate,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
             path: 'v1/partitions',
@@ -57,13 +66,21 @@ class Partitions
 
     /**
      * Create Partitions
-     * @param \Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string} $document The document to partition
+     *
+     * Create a partition.
+     *
+     * Groups the pages of a `document` into chunks by a partition `key`, guided by
+     * `instructions` and the chosen `model`. Set `n_consensus` above `1` to run multiple
+     * votes and consolidate them, and `allow_overlap` to let a page belong to more than one
+     * chunk. Returns the stored `Partition` with its `output` chunks, and responds with `201`.
+     * @param \Retab\Resource\FileRef|\Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string}|array{id: string, filename?: string, mime_type?: string} $document The document to partition
      * @param string $key The key to partition the document by
      * @param string $instructions Instructions describing how the document should be partitioned
      * @param string|null $model The model to use for partitioning
      * @param int|null $nConsensus Number of partitioning runs to use for consensus voting. Uses deterministic single-pass when set to 1.
      * @param bool|null $allowOverlap If true, allow a page to appear in more than one partition chunk
      * @param bool|null $bustCache If true, skip the LLM cache and force a fresh completion
+     * @param bool|null $background If true, run asynchronously: returns immediately with status 'queued' and an empty output. Poll GET /v1/<primitive>/{id} until status is terminal. Mutually exclusive with stream.
      * @return \Retab\Resource\Partition
      * @throws \Retab\Exception\RetabException
      */
@@ -75,9 +92,10 @@ class Partitions
         ?int $nConsensus = null,
         ?bool $allowOverlap = null,
         ?bool $bustCache = null,
+        ?bool $background = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\Partition {
-        $document = \Retab\Resource\MimeDataCoerce::coerce($document);
+        $document = \Retab\Resource\MimeDataCoerce::coerce($document, $this->client);
         $body = array_filter([
             'document' => $document,
             'key' => $key,
@@ -86,7 +104,8 @@ class Partitions
             'n_consensus' => $nConsensus,
             'allow_overlap' => $allowOverlap,
             'bust_cache' => $bustCache,
-        ], fn ($v) => $v !== null);
+            'background' => $background,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/partitions',
@@ -98,17 +117,29 @@ class Partitions
 
     /**
      * Get Partition
+     *
+     * Retrieve a partition.
+     *
+     * Fetches a single partition by its `partition_id` within the authenticated environment
+     * and returns the full `Partition` including its `output` chunks. Responds with `404` if
+     * no partition with that id exists.
      * @param string $partitionId
+     * @param bool|null $includeOutput When false, returns a cheap status-only projection (no output), served from cache for in-flight background runs. Defaults to true.
      * @return \Retab\Resource\Partition
      * @throws \Retab\Exception\RetabException
      */
     public function get(
         string $partitionId,
+        ?bool $includeOutput = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\Partition {
+        $query = array_filter([
+            'include_output' => $includeOutput,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'GET',
             path: 'v1/partitions/' . rawurlencode($partitionId),
+            query: $query,
             options: $options,
         );
         return Partition::fromArray($response);
@@ -116,6 +147,11 @@ class Partitions
 
     /**
      * Delete Partition
+     *
+     * Delete a partition.
+     *
+     * Permanently deletes the partition identified by `partition_id`. Returns
+     * `204` on success, or `404` if no partition with that id exists.
      * @param string $partitionId
      * @return void
      * @throws \Retab\Exception\RetabException
@@ -129,5 +165,23 @@ class Partitions
             path: 'v1/partitions/' . rawurlencode($partitionId),
             options: $options,
         );
+    }
+
+    /**
+     * Cancel Partition
+     * @param string $partitionId
+     * @return \Retab\Resource\Partition
+     * @throws \Retab\Exception\RetabException
+     */
+    public function createPartitionCancel(
+        string $partitionId,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\Partition {
+        $response = $this->client->request(
+            method: 'POST',
+            path: 'v1/partitions/' . rawurlencode($partitionId) . '/cancel',
+            options: $options,
+        );
+        return Partition::fromArray($response);
     }
 }

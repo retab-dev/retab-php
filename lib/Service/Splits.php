@@ -6,22 +6,30 @@ declare(strict_types=1);
 
 namespace Retab\Service;
 
+use Retab\Resource\ReconstructResponse;
 use Retab\Resource\Split;
 
 class Splits
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
-    }
+    ) {}
 
     /**
      * List Splits
+     *
+     * List splits.
+     *
+     * Returns a paginated list of splits for the authenticated environment, newest first by
+     * default. Filter by `filename` prefix (case-insensitive) and by a `created_at` window
+     * using `from_date`/`to_date` (`YYYY-MM-DD`). Page through results with `before`/`after`,
+     * `limit`, and `order`.
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Defaults to 10.
-     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
+     * @param \Retab\Resource\EditsOrder $order Defaults to "desc".
      * @param string|null $filename
+     * @param \Retab\Resource\EditStatus|null $status
      * @param string|null $fromDate
      * @param string|null $toDate
      * @return \Retab\PaginatedResponse<\Retab\Resource\Split>
@@ -31,8 +39,9 @@ class Splits
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
+        \Retab\Resource\EditsOrder $order = \Retab\Resource\EditsOrder::Desc,
         ?string $filename = null,
+        ?\Retab\Resource\EditStatus $status = null,
         ?string $fromDate = null,
         ?string $toDate = null,
         ?\Retab\RequestOptions $options = null,
@@ -43,9 +52,10 @@ class Splits
             'limit' => $limit,
             'order' => $order->value,
             'filename' => $filename,
+            'status' => $status?->value,
             'from_date' => $fromDate,
             'to_date' => $toDate,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
             path: 'v1/splits',
@@ -57,12 +67,20 @@ class Splits
 
     /**
      * Create Split
-     * @param \Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string} $document The document to split
+     *
+     * Create a split.
+     *
+     * Divides a `document` into the named `subdocuments`, assigning each its set of pages,
+     * using the chosen `model` and optional `instructions`. Set `n_consensus` above `1` to
+     * run multiple votes and consolidate them. Returns the stored `Split` with its `output`
+     * page assignments, and responds with `201`.
+     * @param \Retab\Resource\FileRef|\Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string}|array{id: string, filename?: string, mime_type?: string} $document The document to split
      * @param array<\Retab\Resource\Subdocument> $subdocuments The subdocuments to split the document into
      * @param string|null $model The model to use to split the document
      * @param string|null $instructions Free-form instructions appended to the system prompt to steer the split.
      * @param int|null $nConsensus Number of consensus split runs to perform. Uses deterministic single-pass when set to 1.
      * @param bool|null $bustCache If true, skip the LLM cache and force a fresh completion
+     * @param bool|null $background If true, run asynchronously: returns immediately with status 'queued' and an empty output. Poll GET /v1/<primitive>/{id} until status is terminal. Mutually exclusive with stream.
      * @return \Retab\Resource\Split
      * @throws \Retab\Exception\RetabException
      */
@@ -73,9 +91,10 @@ class Splits
         ?string $instructions = null,
         ?int $nConsensus = null,
         ?bool $bustCache = null,
+        ?bool $background = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\Split {
-        $document = \Retab\Resource\MimeDataCoerce::coerce($document);
+        $document = \Retab\Resource\MimeDataCoerce::coerce($document, $this->client);
         $body = array_filter([
             'document' => $document,
             'subdocuments' => $subdocuments,
@@ -83,7 +102,8 @@ class Splits
             'instructions' => $instructions,
             'n_consensus' => $nConsensus,
             'bust_cache' => $bustCache,
-        ], fn ($v) => $v !== null);
+            'background' => $background,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/splits',
@@ -94,18 +114,57 @@ class Splits
     }
 
     /**
+     * Reconstruct Split
+     *
+     * Reconstruct each named subdocument of a stored spreadsheet into an enriched, partition-ready table: one flat complete header, the key carried on every row, section banners promoted to a column, and wide size-matrices melted. Returns the enriched tables (header + rows + clean CSV) for hand-off to extraction.
+     * @param \Retab\Resource\ReconstructDocumentRef $document
+     * @param array<\Retab\Resource\ReconstructSubdocument> $subdocuments
+     * @return \Retab\Resource\ReconstructResponse
+     * @throws \Retab\Exception\RetabException
+     */
+    public function createReconstruct(
+        \Retab\Resource\ReconstructDocumentRef $document,
+        array $subdocuments,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\ReconstructResponse {
+        $body = [
+            'document' => $document,
+            'subdocuments' => $subdocuments,
+        ];
+        $response = $this->client->request(
+            method: 'POST',
+            path: 'v1/splits/reconstruct',
+            body: $body,
+            options: $options,
+        );
+        return ReconstructResponse::fromArray($response);
+    }
+
+    /**
      * Get Split
+     *
+     * Retrieve a split.
+     *
+     * Fetches a single split by its `split_id` within the authenticated environment and
+     * returns the full `Split` including its `output` page assignments. Responds with `404`
+     * if no split with that id exists.
      * @param string $splitId
+     * @param bool|null $includeOutput When false, returns a cheap status-only projection (no output), served from cache for in-flight background runs. Defaults to true.
      * @return \Retab\Resource\Split
      * @throws \Retab\Exception\RetabException
      */
     public function get(
         string $splitId,
+        ?bool $includeOutput = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\Split {
+        $query = array_filter([
+            'include_output' => $includeOutput,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'GET',
             path: 'v1/splits/' . rawurlencode($splitId),
+            query: $query,
             options: $options,
         );
         return Split::fromArray($response);
@@ -113,6 +172,11 @@ class Splits
 
     /**
      * Delete Split
+     *
+     * Delete a split.
+     *
+     * Permanently deletes the split identified by `split_id`. Returns `204` on
+     * success, or `404` if no split with that id exists.
      * @param string $splitId
      * @return void
      * @throws \Retab\Exception\RetabException
@@ -126,5 +190,23 @@ class Splits
             path: 'v1/splits/' . rawurlencode($splitId),
             options: $options,
         );
+    }
+
+    /**
+     * Cancel Split
+     * @param string $splitId
+     * @return \Retab\Resource\Split
+     * @throws \Retab\Exception\RetabException
+     */
+    public function createSplitCancel(
+        string $splitId,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\Split {
+        $response = $this->client->request(
+            method: 'POST',
+            path: 'v1/splits/' . rawurlencode($splitId) . '/cancel',
+            options: $options,
+        );
+        return Split::fromArray($response);
     }
 }

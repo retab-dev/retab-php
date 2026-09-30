@@ -6,22 +6,32 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
+/** Body for creating a workflow. Supply a `name` and optional `description`; the workflow starts empty. */
 readonly class CreateWorkflowRequest implements \JsonSerializable
 {
     use JsonSerializableTrait;
 
     public function __construct(
+        /** Project that should own this workflow. */
+        public string $projectId,
         /** The name of the workflow */
         public ?string $name = null,
         /** Description of the workflow */
         public ?string $description = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'project_id',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for CreateWorkflowRequest::fromArray()");
+            }
+        }
         return new self(
+            projectId: $data['project_id'],
             name: $data['name'] ?? null,
             description: $data['description'] ?? null,
         );
@@ -31,6 +41,7 @@ readonly class CreateWorkflowRequest implements \JsonSerializable
     public function toArray(): array
     {
         return [
+            'project_id' => $this->projectId,
             'name' => $this->name,
             'description' => $this->description,
         ];

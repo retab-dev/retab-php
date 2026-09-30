@@ -7,27 +7,28 @@ declare(strict_types=1);
 namespace Retab\Service;
 
 use Retab\Resource\WorkflowEdgeDoc;
+use Retab\Resource\WorkflowEdgeVersion;
+use Retab\Resource\WorkflowEdgeVersionDiff;
 
 class WorkflowEdges
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
-    }
+    ) {}
 
     /**
      * List Edges
      *
      * List edges for a workflow with keyset cursor pagination.
      *
-     * Optionally filter by source or target block ID. Sorted by ``updated_at``
-     * descending with ``id`` as the tiebreaker. Pass ``after`` for the next
-     * page, ``before`` for the previous page — mutually exclusive.
+     * Optionally filter by source or target block ID. Sorted by `updated_at`
+     * descending with `id` as the tiebreaker. Pass `after` for the next
+     * page, `before` for the previous page — mutually exclusive.
      * @param string $workflowId
      * @param string|null $sourceBlock Filter by source block ID
      * @param string|null $targetBlock Filter by target block ID
-     * @param string|null $before Edge id cursor: return the page before this id (mutually exclusive with ``after``).
-     * @param string|null $after Edge id cursor: return the page after this id (mutually exclusive with ``before``).
+     * @param string|null $before Edge id cursor: return the page before this id (mutually exclusive with `after`).
+     * @param string|null $after Edge id cursor: return the page after this id (mutually exclusive with `before`).
      * @param int|null $limit Maximum number of edges to return per page (1-200). Defaults to 100.
      * @return \Retab\PaginatedResponse<\Retab\Resource\WorkflowEdgeDoc>
      * @throws \Retab\Exception\RetabException
@@ -48,7 +49,7 @@ class WorkflowEdges
             'before' => $before,
             'after' => $after,
             'limit' => $limit,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
             path: 'v1/workflows/edges',
@@ -67,7 +68,7 @@ class WorkflowEdges
      * - Both source and target blocks exist in the workflow
      * - The connection is semantically valid (type compatibility, container rules, etc.)
      * @param string $workflowId Workflow to create the edge in.
-     * @param string|null $id Opaque edge ID. Omit to let the server generate one.
+     * @param string|null $id Edge ID. Omit to let the server generate one (recommended).
      * @param string $sourceBlock Source block ID
      * @param string $targetBlock Target block ID
      * @param string|null $sourceHandle Output handle
@@ -91,7 +92,7 @@ class WorkflowEdges
             'target_block' => $targetBlock,
             'source_handle' => $sourceHandle,
             'target_handle' => $targetHandle,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/workflows/edges',
@@ -102,20 +103,124 @@ class WorkflowEdges
     }
 
     /**
+     * List Edge Versions
+     * @param string $workflowId
+     * @param string|null $edgeId Filter by stable edge ID
+     * @param string|null $workflowVersionId Filter by workflow version ID
+     * @param string|null $before Edge version cursor before
+     * @param string|null $after Edge version cursor after
+     * @param int|null $limit Maximum number of edge versions to return Defaults to 50.
+     * @return \Retab\PaginatedResponse<\Retab\Resource\WorkflowEdgeVersion>
+     * @throws \Retab\Exception\RetabException
+     */
+    public function listVersions(
+        string $workflowId,
+        ?string $edgeId = null,
+        ?string $workflowVersionId = null,
+        ?string $before = null,
+        ?string $after = null,
+        ?int $limit = null,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\PaginatedResponse {
+        $query = array_filter([
+            'workflow_id' => $workflowId,
+            'edge_id' => $edgeId,
+            'workflow_version_id' => $workflowVersionId,
+            'before' => $before,
+            'after' => $after,
+            'limit' => $limit,
+        ], fn($v) => $v !== null);
+        return $this->client->requestPage(
+            method: 'GET',
+            path: 'v1/workflows/edges/versions',
+            query: $query,
+            modelClass: WorkflowEdgeVersion::class,
+            options: $options,
+        );
+    }
+
+    /**
+     * Diff Edge Versions
+     * @param string $fromEdgeVersionId
+     * @param string $toEdgeVersionId
+     * @return \Retab\Resource\WorkflowEdgeVersionDiff
+     * @throws \Retab\Exception\RetabException
+     */
+    public function listDiff(
+        string $fromEdgeVersionId,
+        string $toEdgeVersionId,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\WorkflowEdgeVersionDiff {
+        $query = [
+            'from_edge_version_id' => $fromEdgeVersionId,
+            'to_edge_version_id' => $toEdgeVersionId,
+        ];
+        $response = $this->client->request(
+            method: 'GET',
+            path: 'v1/workflows/edges/versions/diff',
+            query: $query,
+            options: $options,
+        );
+        return WorkflowEdgeVersionDiff::fromArray($response);
+    }
+
+    /**
+     * Get Edge Version
+     * @param string $edgeVersionId
+     * @return \Retab\Resource\WorkflowEdgeVersion
+     * @throws \Retab\Exception\RetabException
+     */
+    public function getVersion(
+        string $edgeVersionId,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\WorkflowEdgeVersion {
+        $response = $this->client->request(
+            method: 'GET',
+            path: 'v1/workflows/edges/versions/' . rawurlencode($edgeVersionId),
+            options: $options,
+        );
+        return WorkflowEdgeVersion::fromArray($response);
+    }
+
+    /**
+     * Restore Edge Version
+     * @param string $edgeVersionId
+     * @return \Retab\Resource\WorkflowEdgeDoc
+     * @throws \Retab\Exception\RetabException
+     */
+    public function createVersionRestore(
+        string $edgeVersionId,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\WorkflowEdgeDoc {
+        $response = $this->client->request(
+            method: 'POST',
+            path: 'v1/workflows/edges/versions/' . rawurlencode($edgeVersionId) . '/restore',
+            options: $options,
+        );
+        return WorkflowEdgeDoc::fromArray($response);
+    }
+
+    /**
      * Get Edge
      *
      * Get a single edge by ID.
      * @param string $edgeId
+     * @param string|null $workflowId
      * @return \Retab\Resource\WorkflowEdgeDoc
      * @throws \Retab\Exception\RetabException
      */
     public function get(
         string $edgeId,
+        ?string $workflowId = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\WorkflowEdgeDoc {
+        $query = array_filter([
+            'workflow_id' => $workflowId,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'GET',
             path: 'v1/workflows/edges/' . rawurlencode($edgeId),
+            query: $query,
             options: $options,
         );
         return WorkflowEdgeDoc::fromArray($response);

@@ -11,12 +11,12 @@ readonly class ExperimentRunTiming implements \JsonSerializable
     use JsonSerializableTrait;
 
     public function __construct(
+        /** When the experiment run record was created */
         public ?\DateTimeImmutable $createdAt = null,
         public ?\DateTimeImmutable $startedAt = null,
         public ?\DateTimeImmutable $completedAt = null,
         public ?int $durationMs = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self

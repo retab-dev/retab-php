@@ -12,15 +12,21 @@ class Parses
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
-    }
+    ) {}
 
     /**
      * List Parses
+     *
+     * List parses.
+     *
+     * Returns a paginated list of parses for the authenticated environment, newest first by
+     * default. Filter by `filename` prefix (case-insensitive) and by a `created_at` window
+     * using `from_date`/`to_date` (`YYYY-MM-DD`). Page through results with `before`/`after`,
+     * `limit`, and `order`.
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Defaults to 10.
-     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
+     * @param \Retab\Resource\EditsOrder $order Defaults to "desc".
      * @param string|null $filename
      * @param string|null $fromDate
      * @param string|null $toDate
@@ -31,7 +37,7 @@ class Parses
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
+        \Retab\Resource\EditsOrder $order = \Retab\Resource\EditsOrder::Desc,
         ?string $filename = null,
         ?string $fromDate = null,
         ?string $toDate = null,
@@ -45,7 +51,7 @@ class Parses
             'filename' => $filename,
             'from_date' => $fromDate,
             'to_date' => $toDate,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
             path: 'v1/parses',
@@ -57,12 +63,19 @@ class Parses
 
     /**
      * Create Parse
-     * @param \Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string} $document The document to parse
+     *
+     * Create a parse.
+     *
+     * Extracts the full text of a `document` into per-page and concatenated text using
+     * the chosen `model`. Tables are rendered in the requested `table_parsing_format`, and
+     * optional `instructions` steer the parse. Returns the stored `Parse` with its `output`
+     * and `usage`, and responds with `201`.
+     * @param \Retab\Resource\FileRef|\Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string}|array{id: string, filename?: string, mime_type?: string} $document The document to parse
      * @param string|null $model The model to use for parsing
      * @param \Retab\Resource\TableParsingFormat|null $tableParsingFormat Format used to render tables extracted from the document
-     * @param int|null $imageResolutionDpi DPI used when rasterizing pages for the parser
      * @param string|null $instructions Free-form instructions appended to the system prompt to steer the parse.
      * @param bool|null $bustCache If true, skip the LLM cache and force a fresh completion
+     * @param bool|null $background If true, run asynchronously: returns immediately with status 'queued' and an empty output. Poll GET /v1/<primitive>/{id} until status is terminal. Mutually exclusive with stream.
      * @return \Retab\Resource\Parse
      * @throws \Retab\Exception\RetabException
      */
@@ -70,20 +83,20 @@ class Parses
         mixed $document,
         ?string $model = null,
         ?\Retab\Resource\TableParsingFormat $tableParsingFormat = null,
-        ?int $imageResolutionDpi = null,
         ?string $instructions = null,
         ?bool $bustCache = null,
+        ?bool $background = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\Parse {
-        $document = \Retab\Resource\MimeDataCoerce::coerce($document);
+        $document = \Retab\Resource\MimeDataCoerce::coerce($document, $this->client);
         $body = array_filter([
             'document' => $document,
             'model' => $model,
             'table_parsing_format' => $tableParsingFormat?->value,
-            'image_resolution_dpi' => $imageResolutionDpi,
             'instructions' => $instructions,
             'bust_cache' => $bustCache,
-        ], fn ($v) => $v !== null);
+            'background' => $background,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/parses',
@@ -95,17 +108,29 @@ class Parses
 
     /**
      * Get Parse
+     *
+     * Retrieve a parse.
+     *
+     * Fetches a single parse by its `parse_id` within the authenticated environment and
+     * returns the full `Parse` including its `output`. Responds with `404` if no parse with
+     * that id exists.
      * @param string $parseId
+     * @param bool|null $includeOutput When false, returns a cheap status-only projection (no output), served from cache for in-flight background runs. Defaults to true.
      * @return \Retab\Resource\Parse
      * @throws \Retab\Exception\RetabException
      */
     public function get(
         string $parseId,
+        ?bool $includeOutput = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\Parse {
+        $query = array_filter([
+            'include_output' => $includeOutput,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'GET',
             path: 'v1/parses/' . rawurlencode($parseId),
+            query: $query,
             options: $options,
         );
         return Parse::fromArray($response);
@@ -113,6 +138,11 @@ class Parses
 
     /**
      * Delete Parse
+     *
+     * Delete a parse.
+     *
+     * Permanently deletes the parse identified by `parse_id`. Returns `204` on
+     * success, or `404` if no parse with that id exists.
      * @param string $parseId
      * @return void
      * @throws \Retab\Exception\RetabException
@@ -126,5 +156,23 @@ class Parses
             path: 'v1/parses/' . rawurlencode($parseId),
             options: $options,
         );
+    }
+
+    /**
+     * Cancel Parse
+     * @param string $parseId
+     * @return \Retab\Resource\Parse
+     * @throws \Retab\Exception\RetabException
+     */
+    public function cancel(
+        string $parseId,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\Parse {
+        $response = $this->client->request(
+            method: 'POST',
+            path: 'v1/parses/' . rawurlencode($parseId) . '/cancel',
+            options: $options,
+        );
+        return Parse::fromArray($response);
     }
 }

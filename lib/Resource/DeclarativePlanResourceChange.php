@@ -15,15 +15,14 @@ readonly class DeclarativePlanResourceChange implements \JsonSerializable
         public DeclarativePlanResourceChangeTarget $target,
         public string $targetId,
         public string $name,
-        /** Resource kind for this plan entry. ``workflow`` and ``edge`` are flat singletons; for ``target='block'`` this carries the block's concrete type (e.g. ``extract``, ``api_call``) so the plan summary can render type-specific labels. */
+        /** Resource kind for this plan entry. `workflow` and `edge` are flat singletons; for `target='block'` this carries the block's concrete type (e.g. `extract`, `api_call`) so the plan summary can render type-specific labels. */
         public DeclarativePlanResourceChangeType $type,
         /** @var array<\Retab\Resource\DeclarativePlanFieldChangeAction> */
         public array $actions,
         public string $summary,
         public DeclarativePlanChange $change,
         public ?string $path = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -48,7 +47,7 @@ readonly class DeclarativePlanResourceChange implements \JsonSerializable
             targetId: $data['target_id'],
             name: $data['name'],
             type: DeclarativePlanResourceChangeType::from($data['type']),
-            actions: array_map(fn ($item) => DeclarativePlanFieldChangeAction::from($item), $data['actions']),
+            actions: array_map(fn($item) => DeclarativePlanFieldChangeAction::from($item), $data['actions']),
             summary: $data['summary'],
             change: DeclarativePlanChange::fromArray($data['change']),
             path: $data['path'] ?? null,
@@ -64,7 +63,7 @@ readonly class DeclarativePlanResourceChange implements \JsonSerializable
             'target_id' => $this->targetId,
             'name' => $this->name,
             'type' => $this->type->value,
-            'actions' => array_map(fn ($item) => $item->value, $this->actions),
+            'actions' => array_map(fn($item) => $item->value, $this->actions),
             'summary' => $this->summary,
             'change' => $this->change->toArray(),
             'path' => $this->path,

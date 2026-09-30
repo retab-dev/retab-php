@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
+/** Body describing which block outputs (or inputs) across a workflow's runs to export as CSV, with optional run, doc-type, and status filters. */
 readonly class WorkflowExportPayloadRequest implements \JsonSerializable
 {
     use JsonSerializableTrait;
@@ -35,24 +36,20 @@ readonly class WorkflowExportPayloadRequest implements \JsonSerializable
         public ?string $fromDate = null,
         /** Optional end date filter (YYYY-MM-DD) */
         public ?string $toDate = null,
-        /**
-         * Optional trigger type filters
-         * @var array<\Retab\Resource\WorkflowRunsTriggerType>|null
-         */
-        public ?array $triggerTypes = null,
+        /** Optional trigger type filter */
+        public ?WorkflowRunsTriggerType $triggerType = null,
         /**
          * Preferred data column order
          * @var array<string>|null
          */
         public ?array $preferredColumns = null,
-        /** CSV field delimiter. Default is ';' (Excel-EU locale default); pass ',' for RFC 4180 / pandas compatibility. Cell values are always quoted when they contain the delimiter, the line terminator, or the quote character, with embedded quotes doubled per RFC 4180. */
+        /** CSV field delimiter. Default is ';' (the Excel EU-locale default); pass ',' for RFC 4180 compatibility. Cell values are always quoted when they contain the delimiter, the line terminator, or the quote character, with embedded quotes doubled per RFC 4180. */
         public ?string $delimiter = null,
         /** CSV line delimiter */
         public ?string $lineDelimiter = null,
         /** CSV quote character */
         public ?string $quote = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -75,7 +72,7 @@ readonly class WorkflowExportPayloadRequest implements \JsonSerializable
             excludeStatus: isset($data['exclude_status']) ? WorkflowRunsStatus::from($data['exclude_status']) : null,
             fromDate: $data['from_date'] ?? null,
             toDate: $data['to_date'] ?? null,
-            triggerTypes: isset($data['trigger_types']) ? array_map(fn ($item) => WorkflowRunsTriggerType::from($item), $data['trigger_types']) : null,
+            triggerType: isset($data['trigger_type']) ? WorkflowRunsTriggerType::from($data['trigger_type']) : null,
             preferredColumns: $data['preferred_columns'] ?? null,
             delimiter: $data['delimiter'] ?? null,
             lineDelimiter: $data['line_delimiter'] ?? null,
@@ -96,7 +93,7 @@ readonly class WorkflowExportPayloadRequest implements \JsonSerializable
             'exclude_status' => $this->excludeStatus?->value,
             'from_date' => $this->fromDate,
             'to_date' => $this->toDate,
-            'trigger_types' => $this->triggerTypes !== null ? array_map(fn ($item) => $item->value, $this->triggerTypes) : null,
+            'trigger_type' => $this->triggerType?->value,
             'preferred_columns' => $this->preferredColumns,
             'delimiter' => $this->delimiter,
             'line_delimiter' => $this->lineDelimiter,

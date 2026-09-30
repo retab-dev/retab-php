@@ -15,7 +15,7 @@ readonly class EditRequest implements \JsonSerializable
         /** Instructions describing how to fill the form fields. */
         public string $instructions,
         /** Input document (PDF, DOCX, XLSX, or PPTX). Mutually exclusive with template_id. */
-        public MimeData|FileRef|null $document = null,
+        public ?MimeData $document = null,
         /** EditTemplate id to fill. When provided, uses the template's pre-defined form fields and empty PDF. Mutually exclusive with document. */
         public ?string $templateId = null,
         /** The model to use for edit inference. */
@@ -24,8 +24,9 @@ readonly class EditRequest implements \JsonSerializable
         public ?EditConfig $config = null,
         /** If true, skip the LLM cache and force a fresh completion. */
         public ?bool $bustCache = null,
-    ) {
-    }
+        /** If true, run asynchronously: returns immediately with status 'queued' and an empty output. Poll GET /v1/<primitive>/{id} until status is terminal. Mutually exclusive with stream. */
+        public ?bool $background = null,
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -39,11 +40,12 @@ readonly class EditRequest implements \JsonSerializable
         }
         return new self(
             instructions: $data['instructions'],
-            document: $data['document'] ?? null,
+            document: isset($data['document']) ? MimeData::fromArray($data['document']) : null,
             templateId: $data['template_id'] ?? null,
             model: $data['model'] ?? null,
             config: isset($data['config']) ? EditConfig::fromArray($data['config']) : null,
             bustCache: $data['bust_cache'] ?? null,
+            background: $data['background'] ?? null,
         );
     }
 
@@ -57,6 +59,7 @@ readonly class EditRequest implements \JsonSerializable
             'model' => $this->model,
             'config' => $this->config?->toArray(),
             'bust_cache' => $this->bustCache,
+            'background' => $this->background,
         ];
     }
 }

@@ -13,19 +13,18 @@ readonly class ParseRequest implements \JsonSerializable
 
     public function __construct(
         /** The document to parse */
-        public MimeData|FileRef $document,
+        public MimeData $document,
         /** The model to use for parsing */
         public ?string $model = null,
         /** Format used to render tables extracted from the document */
         public ?TableParsingFormat $tableParsingFormat = null,
-        /** DPI used when rasterizing pages for the parser */
-        public ?int $imageResolutionDpi = null,
         /** Free-form instructions appended to the system prompt to steer the parse. */
         public ?string $instructions = null,
         /** If true, skip the LLM cache and force a fresh completion */
         public ?bool $bustCache = null,
-    ) {
-    }
+        /** If true, run asynchronously: returns immediately with status 'queued' and an empty output. Poll GET /v1/<primitive>/{id} until status is terminal. Mutually exclusive with stream. */
+        public ?bool $background = null,
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -38,12 +37,12 @@ readonly class ParseRequest implements \JsonSerializable
             }
         }
         return new self(
-            document: $data['document'],
+            document: MimeData::fromArray($data['document']),
             model: $data['model'] ?? null,
             tableParsingFormat: isset($data['table_parsing_format']) ? TableParsingFormat::from($data['table_parsing_format']) : null,
-            imageResolutionDpi: $data['image_resolution_dpi'] ?? null,
             instructions: $data['instructions'] ?? null,
             bustCache: $data['bust_cache'] ?? null,
+            background: $data['background'] ?? null,
         );
     }
 
@@ -54,9 +53,9 @@ readonly class ParseRequest implements \JsonSerializable
             'document' => $this->document->toArray(),
             'model' => $this->model,
             'table_parsing_format' => $this->tableParsingFormat?->value,
-            'image_resolution_dpi' => $this->imageResolutionDpi,
             'instructions' => $this->instructions,
             'bust_cache' => $this->bustCache,
+            'background' => $this->background,
         ];
     }
 }

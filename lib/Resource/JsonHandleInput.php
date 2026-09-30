@@ -6,7 +6,7 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
-/** JSON payload for a handle input. ``data`` is the raw JSON value. */
+/** JSON payload for a handle input. `data` is the raw JSON value. */
 readonly class JsonHandleInput implements \JsonSerializable
 {
     use JsonSerializableTrait;
@@ -14,8 +14,7 @@ readonly class JsonHandleInput implements \JsonSerializable
     public function __construct(
         public mixed $data = null,
         public string $type = 'json',
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self

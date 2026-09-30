@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
+/** A reusable edit template: an empty PDF and the `form_fields` defined on it. */
 readonly class EditTemplate implements \JsonSerializable
 {
     use JsonSerializableTrait;
@@ -17,10 +18,6 @@ readonly class EditTemplate implements \JsonSerializable
         public string $name,
         /** File information for the empty PDF template. */
         public FileRef $file,
-        /** Timestamp of creation. */
-        public \DateTimeImmutable $createdAt,
-        /** Timestamp of last update. */
-        public \DateTimeImmutable $updatedAt,
         /**
          * Form fields attached to the template.
          * @var array<\Retab\Resource\FormField>|null
@@ -28,8 +25,11 @@ readonly class EditTemplate implements \JsonSerializable
         public ?array $formFields = null,
         /** Number of form fields in the template. */
         public ?int $fieldCount = null,
-    ) {
-    }
+        /** Timestamp of creation. */
+        public ?\DateTimeImmutable $createdAt = null,
+        /** Timestamp of last update. */
+        public ?\DateTimeImmutable $updatedAt = null,
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -38,8 +38,6 @@ readonly class EditTemplate implements \JsonSerializable
             'id',
             'name',
             'file',
-            'created_at',
-            'updated_at',
         ] as $__required) {
             if (!array_key_exists($__required, $data)) {
                 throw new \UnexpectedValueException("Missing required field '$__required' for EditTemplate::fromArray()");
@@ -49,10 +47,10 @@ readonly class EditTemplate implements \JsonSerializable
             id: $data['id'],
             name: $data['name'],
             file: FileRef::fromArray($data['file']),
-            createdAt: new \DateTimeImmutable($data['created_at']),
-            updatedAt: new \DateTimeImmutable($data['updated_at']),
-            formFields: isset($data['form_fields']) ? array_map(fn ($item) => FormField::fromArray($item), $data['form_fields']) : null,
+            formFields: isset($data['form_fields']) ? array_map(fn($item) => FormField::fromArray($item), $data['form_fields']) : null,
             fieldCount: $data['field_count'] ?? null,
+            createdAt: isset($data['created_at']) ? new \DateTimeImmutable($data['created_at']) : null,
+            updatedAt: isset($data['updated_at']) ? new \DateTimeImmutable($data['updated_at']) : null,
         );
     }
 
@@ -63,10 +61,10 @@ readonly class EditTemplate implements \JsonSerializable
             'id' => $this->id,
             'name' => $this->name,
             'file' => $this->file->toArray(),
-            'created_at' => $this->createdAt->format(\DateTimeInterface::RFC3339_EXTENDED),
-            'updated_at' => $this->updatedAt->format(\DateTimeInterface::RFC3339_EXTENDED),
-            'form_fields' => $this->formFields !== null ? array_map(fn ($item) => $item->toArray(), $this->formFields) : null,
+            'form_fields' => $this->formFields !== null ? array_map(fn($item) => $item->toArray(), $this->formFields) : null,
             'field_count' => $this->fieldCount,
+            'created_at' => $this->createdAt?->format(\DateTimeInterface::RFC3339_EXTENDED),
+            'updated_at' => $this->updatedAt?->format(\DateTimeInterface::RFC3339_EXTENDED),
         ];
     }
 }

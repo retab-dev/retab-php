@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
+/** An experiment that evaluates a workflow block against a set of documents, with its latest run status and score. */
 readonly class WorkflowExperiment implements \JsonSerializable
 {
     use JsonSerializableTrait;
@@ -19,15 +20,23 @@ readonly class WorkflowExperiment implements \JsonSerializable
         public ReviewBlockType $blockType,
         public ?int $documentCount = null,
         public ?string $lastRunId = null,
+        /** When the experiment was created */
         public ?\DateTimeImmutable $createdAt = null,
+        /** When the experiment was last updated */
         public ?\DateTimeImmutable $updatedAt = null,
         public ?ExperimentPublicStatus $status = null,
         public ?float $score = null,
         public ?bool $isStale = null,
-        public ?WorkflowTestSchemaDrift $schemaDrift = null,
+        public ?ArtifactFreshness $freshness = null,
+        public ?EvalRunFreshnessStatus $freshnessState = null,
+        /** @var array<string>|null */
+        public ?array $freshnessReasons = null,
+        public ?WorkflowExperimentRunPlanMode $runPlanMode = null,
+        public ?int $rerunnableDocumentCount = null,
+        public ?WorkflowEvalSchemaDrift $schemaDrift = null,
         public ?string $schemaDriftDetail = null,
-    ) {
-    }
+        public ?ArtifactDrift $drift = null,
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -58,8 +67,14 @@ readonly class WorkflowExperiment implements \JsonSerializable
             status: isset($data['status']) ? ExperimentPublicStatus::from($data['status']) : null,
             score: $data['score'] ?? null,
             isStale: $data['is_stale'] ?? null,
-            schemaDrift: isset($data['schema_drift']) ? WorkflowTestSchemaDrift::from($data['schema_drift']) : null,
+            freshness: isset($data['freshness']) ? ArtifactFreshness::fromArray($data['freshness']) : null,
+            freshnessState: isset($data['freshness_state']) ? EvalRunFreshnessStatus::from($data['freshness_state']) : null,
+            freshnessReasons: $data['freshness_reasons'] ?? null,
+            runPlanMode: isset($data['run_plan_mode']) ? WorkflowExperimentRunPlanMode::from($data['run_plan_mode']) : null,
+            rerunnableDocumentCount: $data['rerunnable_document_count'] ?? null,
+            schemaDrift: isset($data['schema_drift']) ? WorkflowEvalSchemaDrift::from($data['schema_drift']) : null,
             schemaDriftDetail: $data['schema_drift_detail'] ?? null,
+            drift: isset($data['drift']) ? ArtifactDrift::fromArray($data['drift']) : null,
         );
     }
 
@@ -80,8 +95,14 @@ readonly class WorkflowExperiment implements \JsonSerializable
             'status' => $this->status?->value,
             'score' => $this->score,
             'is_stale' => $this->isStale,
+            'freshness' => $this->freshness?->toArray(),
+            'freshness_state' => $this->freshnessState?->value,
+            'freshness_reasons' => $this->freshnessReasons,
+            'run_plan_mode' => $this->runPlanMode?->value,
+            'rerunnable_document_count' => $this->rerunnableDocumentCount,
             'schema_drift' => $this->schemaDrift?->value,
             'schema_drift_detail' => $this->schemaDriftDetail,
+            'drift' => $this->drift?->toArray(),
         ];
     }
 }

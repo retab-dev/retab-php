@@ -7,16 +7,11 @@ declare(strict_types=1);
 namespace Retab\Resource;
 
 /**
- * All timing information for a run.
+ * Timing information for a run.
  *
- * ``duration_ms`` is backfilled at read time from
- * ``completed_at - started_at`` when both timestamps are present and the
- * stored value is ``None``. The field is ``init=False`` so producers cannot
- * pass it through ``__init__`` — they must round-trip through
- * ``model_validate`` (or persist via the Mongo projection helpers in
- * ``run_duration.py``). Records that already store ``duration_ms`` are left
- * untouched (idempotent), so backfill cannot drift from the canonical value
- * written by the projection.
+ * Three event timestamps that consumers cannot reconstruct on their own.
+ * Wall-clock duration is a trivial `completed_at - started_at` subtraction
+ * done client-side; it is not stored or exposed.
  */
 readonly class RunTiming implements \JsonSerializable
 {
@@ -29,14 +24,7 @@ readonly class RunTiming implements \JsonSerializable
         public ?\DateTimeImmutable $startedAt = null,
         /** When the run finished executing */
         public ?\DateTimeImmutable $completedAt = null,
-        /** When the current awaiting_review period started */
-        public ?\DateTimeImmutable $reviewWaitingStartedAt = null,
-        /** Accumulated time spent waiting for review across the run */
-        public ?int $accumulatedReviewWaitingMs = null,
-        /** Total run duration in milliseconds. Backfilled from ``completed_at - started_at`` on read when not stored. */
-        public ?int $durationMs = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -45,9 +33,6 @@ readonly class RunTiming implements \JsonSerializable
             createdAt: isset($data['created_at']) ? new \DateTimeImmutable($data['created_at']) : null,
             startedAt: isset($data['started_at']) ? new \DateTimeImmutable($data['started_at']) : null,
             completedAt: isset($data['completed_at']) ? new \DateTimeImmutable($data['completed_at']) : null,
-            reviewWaitingStartedAt: isset($data['review_waiting_started_at']) ? new \DateTimeImmutable($data['review_waiting_started_at']) : null,
-            accumulatedReviewWaitingMs: $data['accumulated_review_waiting_ms'] ?? null,
-            durationMs: $data['duration_ms'] ?? null,
         );
     }
 
@@ -58,9 +43,6 @@ readonly class RunTiming implements \JsonSerializable
             'created_at' => $this->createdAt?->format(\DateTimeInterface::RFC3339_EXTENDED),
             'started_at' => $this->startedAt?->format(\DateTimeInterface::RFC3339_EXTENDED),
             'completed_at' => $this->completedAt?->format(\DateTimeInterface::RFC3339_EXTENDED),
-            'review_waiting_started_at' => $this->reviewWaitingStartedAt?->format(\DateTimeInterface::RFC3339_EXTENDED),
-            'accumulated_review_waiting_ms' => $this->accumulatedReviewWaitingMs,
-            'duration_ms' => $this->durationMs,
         ];
     }
 }

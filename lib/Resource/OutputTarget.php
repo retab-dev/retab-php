@@ -6,7 +6,7 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
-/** Structured block-test assertion target. */
+/** Structured block-eval assertion target. */
 readonly class OutputTarget implements \JsonSerializable
 {
     use JsonSerializableTrait;
@@ -14,8 +14,7 @@ readonly class OutputTarget implements \JsonSerializable
     public function __construct(
         public string $outputHandleId,
         public ?string $path = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self

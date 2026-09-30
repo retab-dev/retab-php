@@ -6,31 +6,37 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
+/**
+ * Record of why a while-loop block stopped iterating during a run.
+ *
+ * Reports the `termination_reason` (`max_iterations_reached`,
+ * `condition_matched`, or `error`) and the termination conditions that were
+ * evaluated on the final iteration (`evaluations`).
+ */
 readonly class WhileLoopTermination implements \JsonSerializable
 {
     use JsonSerializableTrait;
 
     public function __construct(
         public string $id,
-        public string $workflowRunId,
+        public string $runId,
         public string $stepId,
         /** Why the while-loop terminated */
         public WhileLoopTerminationTerminationReason $terminationReason,
-        /** When this artifact was written by the orchestrator. */
+        /** Timestamp when this artifact was created. */
         public \DateTimeImmutable $createdAt,
         /** @var array<\Retab\Resource\ConditionEvaluationResult>|null */
         public ?array $evaluations = null,
-        /** Artifact operation that determines the backing record type */
+        /** The operation that produced this artifact */
         public string $operation = 'while_loop_termination',
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
         foreach ([
             'id',
-            'workflow_run_id',
+            'run_id',
             'step_id',
             'termination_reason',
             'created_at',
@@ -41,11 +47,11 @@ readonly class WhileLoopTermination implements \JsonSerializable
         }
         return new self(
             id: $data['id'],
-            workflowRunId: $data['workflow_run_id'],
+            runId: $data['run_id'],
             stepId: $data['step_id'],
             terminationReason: WhileLoopTerminationTerminationReason::from($data['termination_reason']),
             createdAt: new \DateTimeImmutable($data['created_at']),
-            evaluations: isset($data['evaluations']) ? array_map(fn ($item) => ConditionEvaluationResult::fromArray($item), $data['evaluations']) : null,
+            evaluations: isset($data['evaluations']) ? array_map(fn($item) => ConditionEvaluationResult::fromArray($item), $data['evaluations']) : null,
             operation: $data['operation'] ?? 'while_loop_termination',
         );
     }
@@ -55,11 +61,11 @@ readonly class WhileLoopTermination implements \JsonSerializable
     {
         return [
             'id' => $this->id,
-            'workflow_run_id' => $this->workflowRunId,
+            'run_id' => $this->runId,
             'step_id' => $this->stepId,
             'termination_reason' => $this->terminationReason->value,
             'created_at' => $this->createdAt->format(\DateTimeInterface::RFC3339_EXTENDED),
-            'evaluations' => $this->evaluations !== null ? array_map(fn ($item) => $item->toArray(), $this->evaluations) : null,
+            'evaluations' => $this->evaluations !== null ? array_map(fn($item) => $item->toArray(), $this->evaluations) : null,
             'operation' => $this->operation,
         ];
     }

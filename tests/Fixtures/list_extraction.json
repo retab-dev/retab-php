@@ -12,10 +12,17 @@
         "key": {}
       },
       "n_consensus": 1,
-      "image_resolution_dpi": 1,
       "instructions": "test_instructions",
       "output": {
         "key": {}
+      },
+      "status": "pending",
+      "error": {
+        "code": "test_code",
+        "message": "test_message",
+        "details": {
+          "key": {}
+        }
       },
       "consensus": {
         "choices": [

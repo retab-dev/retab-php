@@ -13,8 +13,7 @@ class Extractions
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
-    }
+    ) {}
 
     /**
      * List Extractions
@@ -27,11 +26,12 @@ class Extractions
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Defaults to 10.
-     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
+     * @param \Retab\Resource\EditsOrder $order Defaults to "desc".
      * @param string|null $filename
      * @param string|null $filenameRegex Deprecated alias for prefix filename filtering. Regex patterns are rejected.
-     * @param string|null $filenameContains Plain text filename text search powered by Atlas Search when available.
+     * @param string|null $filenameContains Plain-text search over the filename.
      * @param array<string>|null $documentType Filter by document type. Can be repeated. Accepted values: bmp, csv, doc, docm, docx, dotm, dotx, eml, gif, heic, heif, htm, html, jpeg, jpg, json, md, mhtml, msg, odp, ods, odt, ots, ott, pdf, png, ppt, pptx, rtf, svg, tif, tiff, tsv, txt, webp, xlam, xls, xlsb, xlsm, xlsx, xltm, xltx, xml, yaml, yml.
+     * @param \Retab\Resource\EditStatus|null $status
      * @param string|null $fromDate
      * @param string|null $toDate
      * @param string|null $metadata
@@ -42,11 +42,12 @@ class Extractions
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
+        \Retab\Resource\EditsOrder $order = \Retab\Resource\EditsOrder::Desc,
         ?string $filename = null,
         ?string $filenameRegex = null,
         ?string $filenameContains = null,
         ?array $documentType = null,
+        ?\Retab\Resource\EditStatus $status = null,
         ?string $fromDate = null,
         ?string $toDate = null,
         ?string $metadata = null,
@@ -61,10 +62,11 @@ class Extractions
             'filename_regex' => $filenameRegex,
             'filename_contains' => $filenameContains,
             'document_type' => $documentType,
+            'status' => $status?->value,
             'from_date' => $fromDate,
             'to_date' => $toDate,
             'metadata' => $metadata,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
             path: 'v1/extractions',
@@ -76,16 +78,24 @@ class Extractions
 
     /**
      * Create Extraction
-     * @param \Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string} $document
+     *
+     * Run a structured extraction on a document.
+     *
+     * Extracts structured data from the `document` according to the supplied
+     * `json_schema`, using the requested `model`. Returns the extraction
+     * with its `output`, consensus details, and usage on `201`. When
+     * `stream` is `true`, partial results are streamed back as they are produced.
+     * @param \Retab\Resource\FileRef|\Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string}|array{id: string, filename?: string, mime_type?: string} $document
      * @param array<string, mixed> $jsonSchema JSON schema describing the structured output
      * @param string|null $model The model to use for the extraction
-     * @param int|null $imageResolutionDpi Resolution of the image sent to the LLM
      * @param string|null $instructions Free-form instructions appended to the system prompt to steer the extraction.
      * @param int|null $nConsensus Number of consensus extraction runs to perform. Uses deterministic single-pass when set to 1.
      * @param array<string, string>|null $metadata User-defined metadata to associate with this extraction
      * @param array<array<string, mixed>>|null $additionalMessages Additional chat messages forwarded to the extraction model.
      * @param bool|null $bustCache If true, skip the LLM cache and force a fresh completion
      * @param bool|null $stream
+     * @param bool|null $background If true, run asynchronously: returns immediately with status 'queued' and an empty output. Poll GET /v1/<primitive>/{id} until status is terminal. Mutually exclusive with stream.
+     * @param bool|null $deepExtraction Optimizes for accuracy over latency in documents with very large arrays.
      * @return \Retab\Resource\Extraction
      * @throws \Retab\Exception\RetabException
      */
@@ -93,28 +103,30 @@ class Extractions
         mixed $document,
         array $jsonSchema,
         ?string $model = null,
-        ?int $imageResolutionDpi = null,
         ?string $instructions = null,
         ?int $nConsensus = null,
         ?array $metadata = null,
         ?array $additionalMessages = null,
         ?bool $bustCache = null,
         ?bool $stream = null,
+        ?bool $background = null,
+        ?bool $deepExtraction = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\Extraction {
-        $document = \Retab\Resource\MimeDataCoerce::coerce($document);
+        $document = \Retab\Resource\MimeDataCoerce::coerce($document, $this->client);
         $body = array_filter([
             'document' => $document,
             'json_schema' => $jsonSchema,
             'model' => $model,
-            'image_resolution_dpi' => $imageResolutionDpi,
             'instructions' => $instructions,
             'n_consensus' => $nConsensus,
             'metadata' => $metadata,
             'additional_messages' => $additionalMessages,
             'bust_cache' => $bustCache,
             'stream' => $stream,
-        ], fn ($v) => $v !== null);
+            'background' => $background,
+            'deep_extraction' => $deepExtraction,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/extractions',
@@ -125,18 +137,85 @@ class Extractions
     }
 
     /**
+     * Create Extraction Stream
+     *
+     * Run a structured extraction on a document and stream partial results as they are produced.
+     * @param \Retab\Resource\FileRef|\Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string}|array{id: string, filename?: string, mime_type?: string} $document
+     * @param array<string, mixed> $jsonSchema JSON schema describing the structured output
+     * @param string|null $model The model to use for the extraction
+     * @param string|null $instructions Free-form instructions appended to the system prompt to steer the extraction.
+     * @param int|null $nConsensus Number of consensus extraction runs to perform. Uses deterministic single-pass when set to 1.
+     * @param array<string, string>|null $metadata User-defined metadata to associate with this extraction
+     * @param array<array<string, mixed>>|null $additionalMessages Additional chat messages forwarded to the extraction model.
+     * @param bool|null $bustCache If true, skip the LLM cache and force a fresh completion
+     * @param bool|null $stream
+     * @param bool|null $background If true, run asynchronously: returns immediately with status 'queued' and an empty output. Poll GET /v1/<primitive>/{id} until status is terminal. Mutually exclusive with stream.
+     * @param bool|null $deepExtraction Optimizes for accuracy over latency in documents with very large arrays.
+     * @return mixed
+     * @throws \Retab\Exception\RetabException
+     */
+    public function createStream(
+        mixed $document,
+        array $jsonSchema,
+        ?string $model = null,
+        ?string $instructions = null,
+        ?int $nConsensus = null,
+        ?array $metadata = null,
+        ?array $additionalMessages = null,
+        ?bool $bustCache = null,
+        ?bool $stream = null,
+        ?bool $background = null,
+        ?bool $deepExtraction = null,
+        ?\Retab\RequestOptions $options = null,
+    ): mixed {
+        $document = \Retab\Resource\MimeDataCoerce::coerce($document, $this->client);
+        $body = array_filter([
+            'document' => $document,
+            'json_schema' => $jsonSchema,
+            'model' => $model,
+            'instructions' => $instructions,
+            'n_consensus' => $nConsensus,
+            'metadata' => $metadata,
+            'additional_messages' => $additionalMessages,
+            'bust_cache' => $bustCache,
+            'stream' => $stream,
+            'background' => $background,
+            'deep_extraction' => $deepExtraction,
+        ], fn($v) => $v !== null);
+        $response = $this->client->request(
+            method: 'POST',
+            path: 'v1/extractions/stream',
+            body: $body,
+            options: $options,
+        );
+        return $response;
+    }
+
+    /**
      * Get Extraction
+     *
+     * Retrieve an extraction.
+     *
+     * Returns the extraction identified by `extraction_id`, including its source
+     * file, schema, `output`, and consensus details. Responds with `404` if no
+     * matching extraction exists.
      * @param string $extractionId
+     * @param bool|null $includeOutput When false, returns a cheap status-only projection (no output), served from cache for in-flight background runs. Defaults to true.
      * @return \Retab\Resource\Extraction
      * @throws \Retab\Exception\RetabException
      */
     public function get(
         string $extractionId,
+        ?bool $includeOutput = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\Extraction {
+        $query = array_filter([
+            'include_output' => $includeOutput,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'GET',
             path: 'v1/extractions/' . rawurlencode($extractionId),
+            query: $query,
             options: $options,
         );
         return Extraction::fromArray($response);
@@ -145,7 +224,10 @@ class Extractions
     /**
      * Delete Extraction
      *
-     * Delete an extraction
+     * Delete an extraction.
+     *
+     * Permanently deletes the extraction identified by `extraction_id`. Returns
+     * `204` on success, or `404` if no extraction with that id exists.
      * @param string $extractionId
      * @return void
      * @throws \Retab\Exception\RetabException
@@ -159,6 +241,24 @@ class Extractions
             path: 'v1/extractions/' . rawurlencode($extractionId),
             options: $options,
         );
+    }
+
+    /**
+     * Cancel Extraction
+     * @param string $extractionId
+     * @return \Retab\Resource\Extraction
+     * @throws \Retab\Exception\RetabException
+     */
+    public function createExtractionCancel(
+        string $extractionId,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\Extraction {
+        $response = $this->client->request(
+            method: 'POST',
+            path: 'v1/extractions/' . rawurlencode($extractionId) . '/cancel',
+            options: $options,
+        );
+        return Extraction::fromArray($response);
     }
 
     /**

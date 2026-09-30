@@ -7,32 +7,18 @@ declare(strict_types=1);
 namespace Retab;
 
 use Retab\Service\Classifications;
+use Retab\Service\Consensus;
 use Retab\Service\Edits;
-use Retab\Service\EditTemplates;
-use Retab\Service\ExperimentRunMetrics;
-use Retab\Service\ExperimentRunResults;
-use Retab\Service\ExperimentRuns;
 use Retab\Service\Extractions;
 use Retab\Service\Files;
-use Retab\Service\Jobs;
 use Retab\Service\Parses;
 use Retab\Service\Partitions;
 use Retab\Service\Schemas;
+use Retab\Service\Secrets;
 use Retab\Service\Splits;
-use Retab\Service\WorkflowArtifacts;
-use Retab\Service\WorkflowBlockExecutions;
-use Retab\Service\WorkflowBlocks;
-use Retab\Service\WorkflowEdges;
-use Retab\Service\WorkflowExperiments;
-use Retab\Service\WorkflowReviews;
-use Retab\Service\WorkflowReviewVersions;
-use Retab\Service\WorkflowRuns;
+use Retab\Service\Tables;
+use Retab\Service\Usage;
 use Retab\Service\Workflows;
-use Retab\Service\WorkflowSpecs;
-use Retab\Service\WorkflowSteps;
-use Retab\Service\WorkflowTestRunResults;
-use Retab\Service\WorkflowTestRuns;
-use Retab\Service\WorkflowTests;
 
 class Client
 {
@@ -59,33 +45,26 @@ class Client
     {
         self::$clientId = $id;
     }
-    private ?Service\Schemas $schemas = null;
-    private ?Service\Extractions $extractions = null;
+
+    private static function normalizeBaseUrl(string $baseUrl): string
+    {
+        $normalized = rtrim($baseUrl, '/');
+        $withoutVersion = preg_replace('#/v[0-9]+$#', '', $normalized);
+        return $withoutVersion !== null && $withoutVersion !== '' ? $withoutVersion : $normalized;
+    }
     private ?Service\Classifications $classifications = null;
+    private ?Service\Consensus $consensus = null;
+    private ?Service\Edits $edits = null;
+    private ?Service\Extractions $extractions = null;
+    private ?Service\Files $files = null;
     private ?Service\Parses $parses = null;
     private ?Service\Partitions $partitions = null;
+    private ?Service\Schemas $schemas = null;
+    private ?Service\Secrets $secrets = null;
     private ?Service\Splits $splits = null;
-    private ?Service\Files $files = null;
-    private ?Service\WorkflowRuns $workflowRuns = null;
-    private ?Service\WorkflowSteps $workflowSteps = null;
-    private ?Service\WorkflowReviews $workflowReviews = null;
-    private ?Service\WorkflowReviewVersions $workflowReviewVersions = null;
-    private ?Service\WorkflowArtifacts $workflowArtifacts = null;
-    private ?Service\WorkflowTestRuns $workflowTestRuns = null;
-    private ?Service\WorkflowTestRunResults $workflowTestRunResults = null;
-    private ?Service\WorkflowBlocks $workflowBlocks = null;
-    private ?Service\WorkflowEdges $workflowEdges = null;
-    private ?Service\WorkflowTests $workflowTests = null;
-    private ?Service\ExperimentRuns $experimentRuns = null;
-    private ?Service\ExperimentRunResults $experimentRunResults = null;
-    private ?Service\ExperimentRunMetrics $experimentRunMetrics = null;
-    private ?Service\WorkflowExperiments $workflowExperiments = null;
-    private ?Service\WorkflowBlockExecutions $workflowBlockExecutions = null;
+    private ?Service\Tables $tables = null;
+    private ?Service\Usage $usage = null;
     private ?Service\Workflows $workflows = null;
-    private ?Service\WorkflowSpecs $workflowSpecs = null;
-    private ?Service\EditTemplates $editTemplates = null;
-    private ?Service\Edits $edits = null;
-    private ?Service\Jobs $jobs = null;
 
     public function __construct(
         ?string $apiKey = null,
@@ -98,12 +77,23 @@ class Client
     ) {
         $apiKey ??= getenv('RETAB_API_KEY') ?: self::$apiKey ?? '';
         $clientId ??= getenv('RETAB_CLIENT_ID') ?: self::$clientId;
+        $baseUrl = self::normalizeBaseUrl($baseUrl);
         $this->httpClient = new HttpClient($apiKey, $clientId, $baseUrl, $timeout, $maxRetries, $handler, $userAgent);
     }
 
-    public function schemas(): Schemas
+    public function classifications(): Classifications
     {
-        return $this->schemas ??= new Service\Schemas($this->httpClient);
+        return $this->classifications ??= new Service\Classifications($this->httpClient);
+    }
+
+    public function consensus(): Consensus
+    {
+        return $this->consensus ??= new Service\Consensus($this->httpClient);
+    }
+
+    public function edits(): Edits
+    {
+        return $this->edits ??= new Service\Edits($this->httpClient);
     }
 
     public function extractions(): Extractions
@@ -111,9 +101,9 @@ class Client
         return $this->extractions ??= new Service\Extractions($this->httpClient);
     }
 
-    public function classifications(): Classifications
+    public function files(): Files
     {
-        return $this->classifications ??= new Service\Classifications($this->httpClient);
+        return $this->files ??= new Service\Files($this->httpClient);
     }
 
     public function parses(): Parses
@@ -126,113 +116,33 @@ class Client
         return $this->partitions ??= new Service\Partitions($this->httpClient);
     }
 
+    public function schemas(): Schemas
+    {
+        return $this->schemas ??= new Service\Schemas($this->httpClient);
+    }
+
+    public function secrets(): Secrets
+    {
+        return $this->secrets ??= new Service\Secrets($this->httpClient);
+    }
+
     public function splits(): Splits
     {
         return $this->splits ??= new Service\Splits($this->httpClient);
     }
 
-    public function files(): Files
+    public function tables(): Tables
     {
-        return $this->files ??= new Service\Files($this->httpClient);
+        return $this->tables ??= new Service\Tables($this->httpClient);
     }
 
-    public function workflowRuns(): WorkflowRuns
+    public function usage(): Usage
     {
-        return $this->workflowRuns ??= new Service\WorkflowRuns($this->httpClient);
-    }
-
-    public function workflowSteps(): WorkflowSteps
-    {
-        return $this->workflowSteps ??= new Service\WorkflowSteps($this->httpClient);
-    }
-
-    public function workflowReviews(): WorkflowReviews
-    {
-        return $this->workflowReviews ??= new Service\WorkflowReviews($this->httpClient);
-    }
-
-    public function workflowReviewVersions(): WorkflowReviewVersions
-    {
-        return $this->workflowReviewVersions ??= new Service\WorkflowReviewVersions($this->httpClient);
-    }
-
-    public function workflowArtifacts(): WorkflowArtifacts
-    {
-        return $this->workflowArtifacts ??= new Service\WorkflowArtifacts($this->httpClient);
-    }
-
-    public function workflowTestRuns(): WorkflowTestRuns
-    {
-        return $this->workflowTestRuns ??= new Service\WorkflowTestRuns($this->httpClient);
-    }
-
-    public function workflowTestRunResults(): WorkflowTestRunResults
-    {
-        return $this->workflowTestRunResults ??= new Service\WorkflowTestRunResults($this->httpClient);
-    }
-
-    public function workflowBlocks(): WorkflowBlocks
-    {
-        return $this->workflowBlocks ??= new Service\WorkflowBlocks($this->httpClient);
-    }
-
-    public function workflowEdges(): WorkflowEdges
-    {
-        return $this->workflowEdges ??= new Service\WorkflowEdges($this->httpClient);
-    }
-
-    public function workflowTests(): WorkflowTests
-    {
-        return $this->workflowTests ??= new Service\WorkflowTests($this->httpClient);
-    }
-
-    public function experimentRuns(): ExperimentRuns
-    {
-        return $this->experimentRuns ??= new Service\ExperimentRuns($this->httpClient);
-    }
-
-    public function experimentRunResults(): ExperimentRunResults
-    {
-        return $this->experimentRunResults ??= new Service\ExperimentRunResults($this->httpClient);
-    }
-
-    public function experimentRunMetrics(): ExperimentRunMetrics
-    {
-        return $this->experimentRunMetrics ??= new Service\ExperimentRunMetrics($this->httpClient);
-    }
-
-    public function workflowExperiments(): WorkflowExperiments
-    {
-        return $this->workflowExperiments ??= new Service\WorkflowExperiments($this->httpClient);
-    }
-
-    public function workflowBlockExecutions(): WorkflowBlockExecutions
-    {
-        return $this->workflowBlockExecutions ??= new Service\WorkflowBlockExecutions($this->httpClient);
+        return $this->usage ??= new Service\Usage($this->httpClient);
     }
 
     public function workflows(): Workflows
     {
         return $this->workflows ??= new Service\Workflows($this->httpClient);
-    }
-
-    public function workflowSpecs(): WorkflowSpecs
-    {
-        return $this->workflowSpecs ??= new Service\WorkflowSpecs($this->httpClient);
-    }
-
-    public function editTemplates(): EditTemplates
-    {
-        return $this->editTemplates ??= new Service\EditTemplates($this->httpClient);
-    }
-
-    public function edits(): Edits
-    {
-        return $this->edits ??= new Service\Edits($this->httpClient);
-    }
-
-    public function jobs(): Jobs
-    {
-        return $this->jobs ??= new Service\Jobs($this->httpClient);
     }
 }

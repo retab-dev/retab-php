@@ -6,7 +6,7 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
-/** Gate when any split boundary's confidence is below `threshold`. */
+/** Gate when any split consensus boundary likelihood is below `threshold`. */
 readonly class ReviewBoundaryConfidenceLt implements \JsonSerializable
 {
     use JsonSerializableTrait;
@@ -14,8 +14,7 @@ readonly class ReviewBoundaryConfidenceLt implements \JsonSerializable
     public function __construct(
         public float $threshold,
         public string $kind = 'boundary_confidence_lt',
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self

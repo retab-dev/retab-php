@@ -7,12 +7,10 @@ declare(strict_types=1);
 namespace Retab\Resource;
 
 /**
- * Body for the flat ``POST /workflows/experiments/runs`` route.
+ * Request body to create an experiment run.
  *
- * Carries the scoping identity in the body — no parent id in the URL
- * (meta-pattern-blueprint §1). ``workflow_id`` is optional because it is
- * derivable from the experiment record; when supplied it is validated
- * against the experiment's stored workflow.
+ * `workflow_id` is optional; when omitted it is taken from the experiment,
+ * and when supplied it must match the experiment's workflow.
  */
 readonly class CreateExperimentRunRequest implements \JsonSerializable
 {
@@ -23,8 +21,9 @@ readonly class CreateExperimentRunRequest implements \JsonSerializable
         public string $experimentId,
         /** Optional. When omitted, the workflow is derived from the experiment record. When supplied, must match the experiment's workflow_id (404 otherwise). */
         public ?string $workflowId = null,
-    ) {
-    }
+        /** Optional short-lived token returned by the run-plan preview. When supplied, run creation rejects if the current plan no longer matches the preview. */
+        public ?string $planToken = null,
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -39,6 +38,7 @@ readonly class CreateExperimentRunRequest implements \JsonSerializable
         return new self(
             experimentId: $data['experiment_id'],
             workflowId: $data['workflow_id'] ?? null,
+            planToken: $data['plan_token'] ?? null,
         );
     }
 
@@ -48,6 +48,7 @@ readonly class CreateExperimentRunRequest implements \JsonSerializable
         return [
             'experiment_id' => $this->experimentId,
             'workflow_id' => $this->workflowId,
+            'plan_token' => $this->planToken,
         ];
     }
 }

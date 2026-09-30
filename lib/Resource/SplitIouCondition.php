@@ -9,8 +9,8 @@ namespace Retab\Resource;
 /**
  * Intersection-over-Union for split page assignments.
  *
- * ``expected`` is stored in the canonical split-eval payload shape:
- * ``{"splits": [{"name", "pages"}]}``
+ * `expected` uses the split payload shape:
+ * `{"splits": [{"name", "pages"}]}`
  */
 readonly class SplitIouCondition implements \JsonSerializable
 {
@@ -21,8 +21,7 @@ readonly class SplitIouCondition implements \JsonSerializable
         public array $expected,
         public ?float $threshold = null,
         public string $kind = 'split_iou_gte',
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self

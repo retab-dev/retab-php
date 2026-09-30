@@ -8,6 +8,7 @@ namespace Retab\Service;
 
 use Retab\Resource\CreateUploadResponse;
 use Retab\Resource\File;
+use Retab\Resource\FileBlueprint;
 use Retab\Resource\FileLink;
 use Retab\Resource\MimeData;
 
@@ -15,63 +16,7 @@ class Files
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
-    }
-
-    /**
-     * Upload File
-     * @param string $filename Filename to store
-     * @param string|null $contentType MIME type the client will upload
-     * @param int $sizeBytes Expected upload size in bytes
-     * @param string|null $sha256 Optional SHA-256 checksum
-     * @return \Retab\Resource\CreateUploadResponse
-     * @throws \Retab\Exception\RetabException
-     */
-    public function createUpload(
-        string $filename,
-        int $sizeBytes,
-        ?string $contentType = null,
-        ?string $sha256 = null,
-        ?\Retab\RequestOptions $options = null,
-    ): \Retab\Resource\CreateUploadResponse {
-        $body = array_filter([
-            'filename' => $filename,
-            'content_type' => $contentType,
-            'size_bytes' => $sizeBytes,
-            'sha256' => $sha256,
-        ], fn ($v) => $v !== null);
-        $response = $this->client->request(
-            method: 'POST',
-            path: 'v1/files/upload',
-            body: $body,
-            options: $options,
-        );
-        return CreateUploadResponse::fromArray($response);
-    }
-
-    /**
-     * Complete Upload File
-     * @param string $fileId
-     * @param string|null $sha256 Optional SHA-256 checksum
-     * @return \Retab\Resource\MimeData
-     * @throws \Retab\Exception\RetabException
-     */
-    public function completeUpload(
-        string $fileId,
-        ?string $sha256 = null,
-        ?\Retab\RequestOptions $options = null,
-    ): \Retab\Resource\MimeData {
-        $body = array_filter([
-            'sha256' => $sha256,
-        ], fn ($v) => $v !== null);
-        $response = $this->client->request(
-            method: 'POST',
-            path: 'v1/files/upload/' . rawurlencode($fileId) . '/complete',
-            body: $body,
-            options: $options,
-        );
-        return MimeData::fromArray($response);
-    }
+    ) {}
 
     /**
      * List Files
@@ -80,7 +25,7 @@ class Files
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Items per page Defaults to 10.
-     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
+     * @param \Retab\Resource\EditsOrder $order Defaults to "desc".
      * @param string|null $filename
      * @param string|null $mimeType
      * @param string|null $fromDate
@@ -94,7 +39,7 @@ class Files
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
+        \Retab\Resource\EditsOrder $order = \Retab\Resource\EditsOrder::Desc,
         ?string $filename = null,
         ?string $mimeType = null,
         ?string $fromDate = null,
@@ -114,7 +59,7 @@ class Files
             'to_date' => $toDate,
             'include_embeddings' => $includeEmbeddings,
             'sort_by' => $sortBy,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
             path: 'v1/files',
@@ -125,7 +70,162 @@ class Files
     }
 
     /**
+     * Create File Blueprint
+     *
+     * Create a Document Blueprint for an uploaded file.
+     * @param string $fileId File id to analyze.
+     * @param string|null $intent Optional user intent used to guide the blueprint analysis.
+     * @param \Retab\Resource\FileBlueprintMode|null $mode Legacy compatibility field. Blueprint analysis always runs a single pass.
+     * @param bool|null $background If true, run asynchronously: returns immediately with status 'queued' and an empty output. Poll GET /v1/<primitive>/{id} until status is terminal. Mutually exclusive with stream.
+     * @return \Retab\Resource\FileBlueprint
+     * @throws \Retab\Exception\RetabException
+     */
+    public function createBlueprint(
+        string $fileId,
+        ?string $intent = null,
+        ?\Retab\Resource\FileBlueprintMode $mode = null,
+        ?bool $background = null,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\FileBlueprint {
+        $body = array_filter([
+            'file_id' => $fileId,
+            'intent' => $intent,
+            'mode' => $mode?->value,
+            'background' => $background,
+        ], fn($v) => $v !== null);
+        $response = $this->client->request(
+            method: 'POST',
+            path: 'v1/files/blueprints',
+            body: $body,
+            options: $options,
+        );
+        return FileBlueprint::fromArray($response);
+    }
+
+    /**
+     * Get File Blueprint
+     *
+     * Retrieve a file blueprint by id.
+     * @param string $blueprintId
+     * @param bool|null $includeOutput When false, returns a cheap status-only projection (no output), served from cache for in-flight background runs. Defaults to true.
+     * @return \Retab\Resource\FileBlueprint
+     * @throws \Retab\Exception\RetabException
+     */
+    public function getBlueprint(
+        string $blueprintId,
+        ?bool $includeOutput = null,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\FileBlueprint {
+        $query = array_filter([
+            'include_output' => $includeOutput,
+        ], fn($v) => $v !== null);
+        $response = $this->client->request(
+            method: 'GET',
+            path: 'v1/files/blueprints/' . rawurlencode($blueprintId),
+            query: $query,
+            options: $options,
+        );
+        return FileBlueprint::fromArray($response);
+    }
+
+    /**
+     * Cancel File Blueprint
+     *
+     * Cancel an in-flight background file blueprint.
+     * @param string $blueprintId
+     * @return \Retab\Resource\FileBlueprint
+     * @throws \Retab\Exception\RetabException
+     */
+    public function createBlueprintCancel(
+        string $blueprintId,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\FileBlueprint {
+        $response = $this->client->request(
+            method: 'POST',
+            path: 'v1/files/blueprints/' . rawurlencode($blueprintId) . '/cancel',
+            options: $options,
+        );
+        return FileBlueprint::fromArray($response);
+    }
+
+    /**
+     * Upload File
+     *
+     * Start a file upload.
+     *
+     * Reserves a file record for the given `filename`, `content_type`, and
+     * `size_bytes`, and returns a short-lived signed `upload_url` the client uses
+     * to `PUT` the file content directly. Call the complete-upload endpoint with
+     * the returned `file_id` once the bytes have been uploaded.
+     * @param string $filename Filename to store
+     * @param string|null $contentType MIME type the client will upload
+     * @param int $sizeBytes Expected upload size in bytes
+     * @param string|null $sha256 Optional SHA-256 checksum
+     * @return \Retab\Resource\CreateUploadResponse
+     * @throws \Retab\Exception\RetabException
+     */
+    public function createUpload(
+        string $filename,
+        int $sizeBytes,
+        ?string $contentType = null,
+        ?string $sha256 = null,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\CreateUploadResponse {
+        $body = array_filter([
+            'filename' => $filename,
+            'content_type' => $contentType,
+            'size_bytes' => $sizeBytes,
+            'sha256' => $sha256,
+        ], fn($v) => $v !== null);
+        $response = $this->client->request(
+            method: 'POST',
+            path: 'v1/files/upload',
+            body: $body,
+            options: $options,
+        );
+        return CreateUploadResponse::fromArray($response);
+    }
+
+    /**
+     * Complete Upload File
+     *
+     * Finalize a file upload.
+     *
+     * Confirms that the content for `file_id` has been uploaded, verifying the
+     * object's size and optional `sha256` checksum against the upload session,
+     * and marks the file ready. Returns a durable reference to the stored file.
+     * Responds with `404` if the upload session is unknown, `410` if it has
+     * expired, and `422` if the size or checksum does not match.
+     * @param string $fileId
+     * @param string|null $sha256 Optional SHA-256 checksum
+     * @return \Retab\Resource\MimeData
+     * @throws \Retab\Exception\RetabException
+     */
+    public function completeUpload(
+        string $fileId,
+        ?string $sha256 = null,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\MimeData {
+        $body = array_filter([
+            'sha256' => $sha256,
+        ], fn($v) => $v !== null);
+        $response = $this->client->request(
+            method: 'POST',
+            path: 'v1/files/upload/' . rawurlencode($fileId) . '/complete',
+            body: $body,
+            options: $options,
+        );
+        return MimeData::fromArray($response);
+    }
+
+    /**
      * Get File
+     *
+     * Retrieve a file.
+     *
+     * Returns metadata for the file identified by `file_id`, including its
+     * `filename`, `page_count`, and timestamps. Responds with `404` if no
+     * matching file exists.
      * @param string $fileId
      * @return \Retab\Resource\File
      * @throws \Retab\Exception\RetabException
@@ -144,6 +244,12 @@ class Files
 
     /**
      * Download Link
+     *
+     * Get a temporary download link for a file.
+     *
+     * Returns a short-lived signed `download_url` for the file identified by
+     * `file_id`, along with its `filename` and expiration. Responds with `404`
+     * if no matching file exists.
      * @param string $fileId
      * @return \Retab\Resource\FileLink
      * @throws \Retab\Exception\RetabException

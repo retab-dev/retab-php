@@ -6,19 +6,15 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
-/**
- * Run-id-first public experiment run shape.
- *
- * The canonical identity is ``id``. Internal queue handles and duplicate
- * identity aliases are intentionally absent.
- */
+/** A single execution of an experiment, identified by `id`. */
 readonly class ExperimentRun implements \JsonSerializable
 {
     use JsonSerializableTrait;
 
     public function __construct(
         public string $id,
-        public WorkflowSnapshotRef $workflow,
+        public string $workflowId,
+        public string $workflowVersionId,
         public ExperimentRunTrigger $trigger,
         public string $experimentId,
         public string $blockId,
@@ -26,23 +22,26 @@ readonly class ExperimentRun implements \JsonSerializable
         public NConsensusValue $nConsensus,
         public PendingWorkflowExperimentRun|QueuedWorkflowExperimentRun|RunningWorkflowExperimentRun|CompletedWorkflowExperimentRun|ErrorWorkflowExperimentRun|CancelledWorkflowExperimentRun $lifecycle,
         public ExperimentRunTiming $timing,
-        public string $definitionFingerprint,
+        public string $blockExecutionFingerprint,
         public string $documentsFingerprint,
         public ?string $parentRunId = null,
+        public ?string $blockVersionId = null,
+        public ?string $metricsValidityFingerprint = null,
+        public ?int $metricsValidityFingerprintVersion = null,
         public ?float $score = null,
         public ?int $totalDocumentCount = null,
         public ?int $completedDocumentCount = null,
         public ?int $documentCount = null,
         public ?int $errorCount = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
         foreach ([
             'id',
-            'workflow',
+            'workflow_id',
+            'workflow_version_id',
             'trigger',
             'experiment_id',
             'block_id',
@@ -50,7 +49,7 @@ readonly class ExperimentRun implements \JsonSerializable
             'n_consensus',
             'lifecycle',
             'timing',
-            'definition_fingerprint',
+            'block_execution_fingerprint',
             'documents_fingerprint',
         ] as $__required) {
             if (!array_key_exists($__required, $data)) {
@@ -59,17 +58,23 @@ readonly class ExperimentRun implements \JsonSerializable
         }
         return new self(
             id: $data['id'],
-            workflow: WorkflowSnapshotRef::fromArray($data['workflow']),
+            workflowId: $data['workflow_id'],
+            workflowVersionId: $data['workflow_version_id'],
             trigger: ExperimentRunTrigger::fromArray($data['trigger']),
             experimentId: $data['experiment_id'],
             blockId: $data['block_id'],
             blockType: ReviewBlockType::from($data['block_type']),
             nConsensus: NConsensusValue::from($data['n_consensus']),
-            lifecycle: match ($data['lifecycle']['status'] ?? null) { 'cancelled' => CancelledWorkflowExperimentRun::fromArray($data['lifecycle']), 'completed' => CompletedWorkflowExperimentRun::fromArray($data['lifecycle']), 'error' => ErrorWorkflowExperimentRun::fromArray($data['lifecycle']), 'pending' => PendingWorkflowExperimentRun::fromArray($data['lifecycle']), 'queued' => QueuedWorkflowExperimentRun::fromArray($data['lifecycle']), 'running' => RunningWorkflowExperimentRun::fromArray($data['lifecycle']), default => throw new \UnexpectedValueException(sprintf('Unknown status: %s', json_encode($data['lifecycle']['status'] ?? null))) },
+            lifecycle: match ($data['lifecycle']['status'] ?? null) {
+                'cancelled' => CancelledWorkflowExperimentRun::fromArray($data['lifecycle']), 'completed' => CompletedWorkflowExperimentRun::fromArray($data['lifecycle']), 'error' => ErrorWorkflowExperimentRun::fromArray($data['lifecycle']), 'pending' => PendingWorkflowExperimentRun::fromArray($data['lifecycle']), 'queued' => QueuedWorkflowExperimentRun::fromArray($data['lifecycle']), 'running' => RunningWorkflowExperimentRun::fromArray($data['lifecycle']), default => throw new \UnexpectedValueException(sprintf('Unknown status: %s', json_encode($data['lifecycle']['status'] ?? null))),
+            },
             timing: ExperimentRunTiming::fromArray($data['timing']),
-            definitionFingerprint: $data['definition_fingerprint'],
+            blockExecutionFingerprint: $data['block_execution_fingerprint'],
             documentsFingerprint: $data['documents_fingerprint'],
             parentRunId: $data['parent_run_id'] ?? null,
+            blockVersionId: $data['block_version_id'] ?? null,
+            metricsValidityFingerprint: $data['metrics_validity_fingerprint'] ?? null,
+            metricsValidityFingerprintVersion: $data['metrics_validity_fingerprint_version'] ?? null,
             score: $data['score'] ?? null,
             totalDocumentCount: $data['total_document_count'] ?? null,
             completedDocumentCount: $data['completed_document_count'] ?? null,
@@ -83,7 +88,8 @@ readonly class ExperimentRun implements \JsonSerializable
     {
         return [
             'id' => $this->id,
-            'workflow' => $this->workflow->toArray(),
+            'workflow_id' => $this->workflowId,
+            'workflow_version_id' => $this->workflowVersionId,
             'trigger' => $this->trigger->toArray(),
             'experiment_id' => $this->experimentId,
             'block_id' => $this->blockId,
@@ -91,9 +97,12 @@ readonly class ExperimentRun implements \JsonSerializable
             'n_consensus' => $this->nConsensus->value,
             'lifecycle' => $this->lifecycle->toArray(),
             'timing' => $this->timing->toArray(),
-            'definition_fingerprint' => $this->definitionFingerprint,
+            'block_execution_fingerprint' => $this->blockExecutionFingerprint,
             'documents_fingerprint' => $this->documentsFingerprint,
             'parent_run_id' => $this->parentRunId,
+            'block_version_id' => $this->blockVersionId,
+            'metrics_validity_fingerprint' => $this->metricsValidityFingerprint,
+            'metrics_validity_fingerprint_version' => $this->metricsValidityFingerprintVersion,
             'score' => $this->score,
             'total_document_count' => $this->totalDocumentCount,
             'completed_document_count' => $this->completedDocumentCount,

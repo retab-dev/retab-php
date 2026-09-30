@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
+/** An uploaded file: its `id`, `filename`, MIME type, page count, and timestamps. */
 readonly class File implements \JsonSerializable
 {
     use JsonSerializableTrait;
@@ -15,15 +16,16 @@ readonly class File implements \JsonSerializable
         public string $id,
         /** The name of the file */
         public string $filename,
+        /** The MIME type of the file */
+        public ?string $mimeType = null,
         /** When the file was created */
-        public \DateTimeImmutable $createdAt,
+        public ?\DateTimeImmutable $createdAt = null,
         /** When the file was last updated */
-        public \DateTimeImmutable $updatedAt,
+        public ?\DateTimeImmutable $updatedAt = null,
         /** Number of pages in the file */
         public ?int $pageCount = null,
         public string $object = 'file',
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -31,8 +33,6 @@ readonly class File implements \JsonSerializable
         foreach ([
             'id',
             'filename',
-            'created_at',
-            'updated_at',
         ] as $__required) {
             if (!array_key_exists($__required, $data)) {
                 throw new \UnexpectedValueException("Missing required field '$__required' for File::fromArray()");
@@ -41,8 +41,9 @@ readonly class File implements \JsonSerializable
         return new self(
             id: $data['id'],
             filename: $data['filename'],
-            createdAt: new \DateTimeImmutable($data['created_at']),
-            updatedAt: new \DateTimeImmutable($data['updated_at']),
+            mimeType: $data['mime_type'] ?? null,
+            createdAt: isset($data['created_at']) ? new \DateTimeImmutable($data['created_at']) : null,
+            updatedAt: isset($data['updated_at']) ? new \DateTimeImmutable($data['updated_at']) : null,
             pageCount: $data['page_count'] ?? null,
             object: $data['object'] ?? 'file',
         );
@@ -54,8 +55,9 @@ readonly class File implements \JsonSerializable
         return [
             'id' => $this->id,
             'filename' => $this->filename,
-            'created_at' => $this->createdAt->format(\DateTimeInterface::RFC3339_EXTENDED),
-            'updated_at' => $this->updatedAt->format(\DateTimeInterface::RFC3339_EXTENDED),
+            'mime_type' => $this->mimeType,
+            'created_at' => $this->createdAt?->format(\DateTimeInterface::RFC3339_EXTENDED),
+            'updated_at' => $this->updatedAt?->format(\DateTimeInterface::RFC3339_EXTENDED),
             'page_count' => $this->pageCount,
             'object' => $this->object,
         ];

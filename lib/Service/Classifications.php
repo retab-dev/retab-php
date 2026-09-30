@@ -12,16 +12,21 @@ class Classifications
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
-    }
+    ) {}
 
     /**
      * List Classifications
+     *
+     * List classifications.
+     *
+     * Returns a paginated list of classifications, most recent first. Filter by
+     * `filename` or a `from_date`/`to_date` range, and page with `before`/`after`.
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Defaults to 10.
-     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
+     * @param \Retab\Resource\EditsOrder $order Defaults to "desc".
      * @param string|null $filename
+     * @param \Retab\Resource\EditStatus|null $status
      * @param string|null $fromDate
      * @param string|null $toDate
      * @return \Retab\PaginatedResponse<\Retab\Resource\Classification>
@@ -31,8 +36,9 @@ class Classifications
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
+        \Retab\Resource\EditsOrder $order = \Retab\Resource\EditsOrder::Desc,
         ?string $filename = null,
+        ?\Retab\Resource\EditStatus $status = null,
         ?string $fromDate = null,
         ?string $toDate = null,
         ?\Retab\RequestOptions $options = null,
@@ -43,9 +49,10 @@ class Classifications
             'limit' => $limit,
             'order' => $order->value,
             'filename' => $filename,
+            'status' => $status?->value,
             'from_date' => $fromDate,
             'to_date' => $toDate,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
             path: 'v1/classifications',
@@ -57,13 +64,22 @@ class Classifications
 
     /**
      * Create Classification
-     * @param \Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string} $document The document to classify
+     *
+     * Classify a document.
+     *
+     * Runs a classification on the supplied `document` against the provided
+     * `categories`. Tune the run with `model`, `instructions`, `first_n_pages`
+     * (limit to the first pages), and `n_consensus` (number of votes to combine).
+     * Returns the created classification with the chosen category and reasoning;
+     * responds with `201`.
+     * @param \Retab\Resource\FileRef|\Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string}|array{id: string, filename?: string, mime_type?: string} $document The document to classify
      * @param array<\Retab\Resource\Category> $categories The categories to classify the document into
      * @param string|null $model The model to use for classification
      * @param int|null $firstNPages Only use the first N pages of the document for classification. Useful for large documents where classification can be determined from early pages.
      * @param string|null $instructions Free-form instructions appended to the system prompt to steer the classification.
      * @param int|null $nConsensus Number of classification runs to use for consensus voting. Uses deterministic single-pass when set to 1.
      * @param bool|null $bustCache If true, skip the LLM cache and force a fresh completion
+     * @param bool|null $background If true, run asynchronously: returns immediately with status 'queued' and an empty output. Poll GET /v1/<primitive>/{id} until status is terminal. Mutually exclusive with stream.
      * @return \Retab\Resource\Classification
      * @throws \Retab\Exception\RetabException
      */
@@ -75,9 +91,10 @@ class Classifications
         ?string $instructions = null,
         ?int $nConsensus = null,
         ?bool $bustCache = null,
+        ?bool $background = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\Classification {
-        $document = \Retab\Resource\MimeDataCoerce::coerce($document);
+        $document = \Retab\Resource\MimeDataCoerce::coerce($document, $this->client);
         $body = array_filter([
             'document' => $document,
             'categories' => $categories,
@@ -86,7 +103,8 @@ class Classifications
             'instructions' => $instructions,
             'n_consensus' => $nConsensus,
             'bust_cache' => $bustCache,
-        ], fn ($v) => $v !== null);
+            'background' => $background,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/classifications',
@@ -98,17 +116,29 @@ class Classifications
 
     /**
      * Get Classification
+     *
+     * Retrieve a classification.
+     *
+     * Fetches a single classification by its `classification_id`. Returns the
+     * classification with its file reference, categories, and result; responds
+     * with `404` if no classification with that id exists.
      * @param string $classificationId
+     * @param bool|null $includeOutput When false, returns a cheap status-only projection (no output), served from cache for in-flight background runs. Defaults to true.
      * @return \Retab\Resource\Classification
      * @throws \Retab\Exception\RetabException
      */
     public function get(
         string $classificationId,
+        ?bool $includeOutput = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\Classification {
+        $query = array_filter([
+            'include_output' => $includeOutput,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'GET',
             path: 'v1/classifications/' . rawurlencode($classificationId),
+            query: $query,
             options: $options,
         );
         return Classification::fromArray($response);
@@ -116,6 +146,11 @@ class Classifications
 
     /**
      * Delete Classification
+     *
+     * Delete a classification.
+     *
+     * Permanently deletes the classification identified by `classification_id`.
+     * Returns `204` on success, or `404` if no classification with that id exists.
      * @param string $classificationId
      * @return void
      * @throws \Retab\Exception\RetabException
@@ -129,5 +164,23 @@ class Classifications
             path: 'v1/classifications/' . rawurlencode($classificationId),
             options: $options,
         );
+    }
+
+    /**
+     * Cancel Classification
+     * @param string $classificationId
+     * @return \Retab\Resource\Classification
+     * @throws \Retab\Exception\RetabException
+     */
+    public function createClassificationCancel(
+        string $classificationId,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\Classification {
+        $response = $this->client->request(
+            method: 'POST',
+            path: 'v1/classifications/' . rawurlencode($classificationId) . '/cancel',
+            options: $options,
+        );
+        return Classification::fromArray($response);
     }
 }

@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
+/** Body to start a file upload: the `filename`, expected `size_bytes`, and optional content type and checksum. */
 readonly class UploadFileRequest implements \JsonSerializable
 {
     use JsonSerializableTrait;
@@ -19,8 +20,7 @@ readonly class UploadFileRequest implements \JsonSerializable
         public ?string $contentType = null,
         /** Optional SHA-256 checksum */
         public ?string $sha256 = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self

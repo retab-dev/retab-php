@@ -7,11 +7,10 @@ declare(strict_types=1);
 namespace Retab\Resource;
 
 /**
- * POST /workflows/reviews/versions body.
+ * Create a corrected version of a review.
  *
- * Public callers create corrections, not seeds. ``parent_id`` must
- * reference an existing version under the same ``review_id``; seed versions
- * are created by the runtime through the store path.
+ * `parent_id` must reference an existing version under the same
+ * `review_id`.
  */
 readonly class CreateReviewVersionRequest implements \JsonSerializable
 {
@@ -26,8 +25,12 @@ readonly class CreateReviewVersionRequest implements \JsonSerializable
          */
         public array $snapshot,
         public ?string $note = null,
-    ) {
-    }
+        /**
+         * Version ids the caller has seen and is deliberately superseding. A review's versions form a lineage; deciding (or parenting on) a version that is not its only latest version discards every other latest version, so the server refuses that write with a 409 unless every discarded id is listed here. Leave empty unless you are intentionally rolling back to an earlier version or choosing one arm of a forked lineage. The 409 detail names the exact ids to pass.
+         * @var array<string>|null
+         */
+        public ?array $acknowledgedSupersededVersionIds = null,
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -46,6 +49,7 @@ readonly class CreateReviewVersionRequest implements \JsonSerializable
             parentId: $data['parent_id'],
             snapshot: $data['snapshot'],
             note: $data['note'] ?? null,
+            acknowledgedSupersededVersionIds: $data['acknowledged_superseded_version_ids'] ?? null,
         );
     }
 
@@ -57,6 +61,7 @@ readonly class CreateReviewVersionRequest implements \JsonSerializable
             'parent_id' => $this->parentId,
             'snapshot' => $this->snapshot,
             'note' => $this->note,
+            'acknowledged_superseded_version_ids' => $this->acknowledgedSupersededVersionIds,
         ];
     }
 }

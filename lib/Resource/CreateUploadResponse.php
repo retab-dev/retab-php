@@ -6,6 +6,13 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
+/**
+ * Instructions for uploading file content to a reserved file record.
+ *
+ * Returned when starting a file upload. Carries the new `file_id`, a
+ * short-lived signed `upload_url` with the HTTP method and headers to use,
+ * a durable reference to the file, and the URL's `expires_at` time.
+ */
 readonly class CreateUploadResponse implements \JsonSerializable
 {
     use JsonSerializableTrait;
@@ -15,8 +22,6 @@ readonly class CreateUploadResponse implements \JsonSerializable
         public string $fileId,
         /** Short-lived signed upload URL */
         public string $uploadUrl,
-        /** Durable Retab MIMEData reference */
-        public MimeData $mimeData,
         /** Upload URL expiration */
         public \DateTimeImmutable $expiresAt,
         /** HTTP method for upload */
@@ -26,8 +31,9 @@ readonly class CreateUploadResponse implements \JsonSerializable
          * @var array<string, string>|null
          */
         public ?array $uploadHeaders = null,
-    ) {
-    }
+        /** Durable Retab MIMEData reference */
+        public ?MimeData $mimeData = null,
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -35,7 +41,6 @@ readonly class CreateUploadResponse implements \JsonSerializable
         foreach ([
             'fileId',
             'uploadUrl',
-            'mimeData',
             'expiresAt',
         ] as $__required) {
             if (!array_key_exists($__required, $data)) {
@@ -45,10 +50,10 @@ readonly class CreateUploadResponse implements \JsonSerializable
         return new self(
             fileId: $data['fileId'],
             uploadUrl: $data['uploadUrl'],
-            mimeData: MimeData::fromArray($data['mimeData']),
             expiresAt: new \DateTimeImmutable($data['expiresAt']),
             uploadMethod: $data['uploadMethod'] ?? null,
             uploadHeaders: $data['uploadHeaders'] ?? null,
+            mimeData: isset($data['mimeData']) ? MimeData::fromArray($data['mimeData']) : null,
         );
     }
 
@@ -58,10 +63,10 @@ readonly class CreateUploadResponse implements \JsonSerializable
         return [
             'fileId' => $this->fileId,
             'uploadUrl' => $this->uploadUrl,
-            'mimeData' => $this->mimeData->toArray(),
             'expiresAt' => $this->expiresAt->format(\DateTimeInterface::RFC3339_EXTENDED),
             'uploadMethod' => $this->uploadMethod,
             'uploadHeaders' => $this->uploadHeaders,
+            'mimeData' => $this->mimeData?->toArray(),
         ];
     }
 }

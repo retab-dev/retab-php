@@ -3,12 +3,6 @@
 declare(strict_types=1);
 
 // @oagen-ignore-file
-//
-// Hand-maintained test harness used by every `tests/Service/*Test.php`
-// emitted by the generator. The trait wires a Guzzle MockHandler into a
-// `Retab\Client`, gives each test a `getLastRequest()` accessor for
-// request-shape assertions, and loads JSON fixture files from
-// `tests/Fixtures/`. Generator never touches this file.
 
 namespace Retab;
 
@@ -24,64 +18,62 @@ trait TestHelper
     private array $recordedRequests = [];
 
     /**
-     * Build a `Retab\Client` that replies with the supplied canned responses.
-     * Each entry is `['status' => int, 'body' => array|string]`; body arrays
-     * are JSON-encoded automatically.
-     *
-     * @param list<array{status?: int, body?: array<string, mixed>|list<mixed>|string}> $responses
+     * @param list<array{status?: int, body?: mixed, headers?: array<string, string>}> $responses
      */
-    public function createMockClient(array $responses): Client
+    protected function createMockClient(array $responses): Client
     {
-        $psrResponses = [];
-        foreach ($responses as $r) {
-            $status = $r['status'] ?? 200;
-            $body = $r['body'] ?? null;
-            $payload = is_array($body) ? json_encode($body, JSON_THROW_ON_ERROR) : ($body ?? '');
-            $psrResponses[] = new Response($status, ['Content-Type' => 'application/json'], $payload);
-        }
+        $mockResponses = array_map(
+            static function (array $response): Response {
+                $body = $response['body'] ?? [];
+                return new Response(
+                    $response['status'] ?? 200,
+                    $response['headers'] ?? ['Content-Type' => 'application/json'],
+                    is_string($body) ? $body : (string) json_encode($body),
+                );
+            },
+            $responses,
+        );
 
-        $this->recordedRequests = [];
-        $mock = new MockHandler($psrResponses);
+        $mock = new MockHandler($mockResponses);
         $stack = HandlerStack::create($mock);
-        $stack->push(Middleware::tap(function (RequestInterface $req) {
-            $this->recordedRequests[] = ['request' => $req];
+        $stack->push(Middleware::tap(function (RequestInterface $request): void {
+            $this->recordedRequests[] = ['request' => $request];
         }));
 
         return new Client(
             apiKey: 'test-key',
-            clientId: 'test-client',
-            baseUrl: 'https://api.test.local',
-            timeout: 1,
+            baseUrl: 'http://localhost:4000',
             maxRetries: 0,
             handler: $stack,
         );
     }
 
-    public function getLastRequest(): RequestInterface
-    {
-        if ($this->recordedRequests === []) {
-            throw new \RuntimeException('No HTTP request was recorded.');
-        }
-        return $this->recordedRequests[array_key_last($this->recordedRequests)]['request'];
-    }
-
     /**
-     * Load a JSON fixture by basename (without extension) from `tests/Fixtures/`.
-     *
      * @return array<string, mixed>
      */
-    public function loadFixture(string $name): array
+    protected function loadFixture(string $name): array
     {
         $path = __DIR__ . '/../tests/Fixtures/' . $name . '.json';
-        if (!is_file($path)) {
-            throw new \RuntimeException("Fixture not found: {$path}");
+        $contents = file_get_contents($path);
+        if ($contents === false) {
+            throw new \RuntimeException(sprintf('Unable to read fixture %s.', $path));
         }
-        $raw = (string) file_get_contents($path);
-        $decoded = json_decode($raw, associative: true, depth: 512, flags: JSON_THROW_ON_ERROR);
+        $decoded = json_decode($contents, true);
         if (!is_array($decoded)) {
-            throw new \RuntimeException("Fixture {$name} did not decode to an object.");
+            throw new \RuntimeException(sprintf('Fixture %s is not a JSON object.', $path));
         }
+
         /** @var array<string, mixed> $decoded */
         return $decoded;
+    }
+
+    protected function getLastRequest(): RequestInterface
+    {
+        $record = $this->recordedRequests[array_key_last($this->recordedRequests) ?? 0] ?? null;
+        if ($record === null) {
+            throw new \RuntimeException('No HTTP request was recorded.');
+        }
+
+        return $record['request'];
     }
 }

@@ -12,15 +12,14 @@ class WorkflowReviewVersions
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
-    }
+    ) {}
 
     /**
-     * List Review Versions Route
+     * List Review Versions
      *
      * List versions for one review.
      *
-     * ``review_id`` is required by design — listing versions across all reviews
+     * `review_id` is required by design — listing versions across all reviews
      * has no product use and would expose a needlessly wide query surface.
      * @param string $reviewId Required: the review whose versions to list.
      * @param string|null $before
@@ -41,7 +40,7 @@ class WorkflowReviewVersions
             'before' => $before,
             'after' => $after,
             'limit' => $limit,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
             path: 'v1/workflows/reviews/versions',
@@ -52,13 +51,14 @@ class WorkflowReviewVersions
     }
 
     /**
-     * Create Review Version Route
+     * Create Review Version
      *
      * Create one immutable, content-addressed review version.
      * @param string $reviewId
      * @param string $parentId
      * @param array<string, mixed> $snapshot The full reviewed snapshot to store as an immutable version. The object must match the gated block type: extract uses the raw output object; classifier uses {'category': string}; split uses {'documents': [{'name': string, 'pages': positive sorted int[]}]}; for_each uses {'partitions': [{'key': string, 'pages': positive sorted int[]}]}. The server validates the shape and stores the exact submitted object when valid.
      * @param string|null $note
+     * @param array<string>|null $acknowledgedSupersededVersionIds Version ids the caller has seen and is deliberately superseding. A review's versions form a lineage; deciding (or parenting on) a version that is not its only latest version discards every other latest version, so the server refuses that write with a 409 unless every discarded id is listed here. Leave empty unless you are intentionally rolling back to an earlier version or choosing one arm of a forked lineage. The 409 detail names the exact ids to pass.
      * @return \Retab\Resource\ReviewVersion
      * @throws \Retab\Exception\RetabException
      */
@@ -67,6 +67,7 @@ class WorkflowReviewVersions
         string $parentId,
         array $snapshot,
         ?string $note = null,
+        ?array $acknowledgedSupersededVersionIds = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\ReviewVersion {
         $body = array_filter([
@@ -74,7 +75,8 @@ class WorkflowReviewVersions
             'parent_id' => $parentId,
             'snapshot' => $snapshot,
             'note' => $note,
-        ], fn ($v) => $v !== null);
+            'acknowledged_superseded_version_ids' => $acknowledgedSupersededVersionIds,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/workflows/reviews/versions',
@@ -85,7 +87,7 @@ class WorkflowReviewVersions
     }
 
     /**
-     * Get Review Version Route
+     * Get Review Version
      *
      * Read one review version by its content-addressed id.
      * @param string $versionId

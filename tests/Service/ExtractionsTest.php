@@ -17,7 +17,7 @@ class ExtractionsTest extends TestCase
     {
         $fixture = $this->loadFixture('list_extraction');
         $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
-        $result = $client->extractions()->list(before: 'test_value', after: 'test_value', limit: 1, order: \Retab\Resource\JobsOrder::Asc, filename: 'test_value', filenameRegex: 'test_value', filenameContains: 'test_value', documentType: [], fromDate: 'test_value', toDate: 'test_value', metadata: 'test_value');
+        $result = $client->extractions()->list(before: 'test_value', after: 'test_value', limit: 1, order: \Retab\Resource\EditsOrder::Asc, filename: 'test_value', filenameRegex: 'test_value', filenameContains: 'test_value', documentType: [], status: \Retab\Resource\EditStatus::Pending, fromDate: 'test_value', toDate: 'test_value', metadata: 'test_value');
         $this->assertInstanceOf(\Retab\PaginatedResponse::class, $result);
         $request = $this->getLastRequest();
         $this->assertSame('GET', $request->getMethod());
@@ -30,6 +30,7 @@ class ExtractionsTest extends TestCase
         $this->assertSame('test_value', $query['filename']);
         $this->assertSame('test_value', $query['filename_regex']);
         $this->assertSame('test_value', $query['filename_contains']);
+        $this->assertSame('pending', $query['status']);
         $this->assertSame('test_value', $query['from_date']);
         $this->assertSame('test_value', $query['to_date']);
         $this->assertSame('test_value', $query['metadata']);
@@ -39,7 +40,7 @@ class ExtractionsTest extends TestCase
     {
         $fixture = $this->loadFixture('extraction');
         $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
-        $result = $client->extractions()->create(document: 'test_value', jsonSchema: []);
+        $result = $client->extractions()->create(document: \Retab\Resource\MimeData::fromArray($this->loadFixture('mime_data')), jsonSchema: []);
         $this->assertInstanceOf(\Retab\Resource\Extraction::class, $result);
         $this->assertSame($fixture['id'], $result->id);
         $this->assertSame($fixture['model'], $result->model);
@@ -49,11 +50,20 @@ class ExtractionsTest extends TestCase
         $this->assertStringEndsWith('v1/extractions', $request->getUri()->getPath());
     }
 
+    public function testCreateStream(): void
+    {
+        $client = $this->createMockClient([['status' => 200, 'body' => []]]);
+        $client->extractions()->createStream(document: \Retab\Resource\MimeData::fromArray($this->loadFixture('mime_data')), jsonSchema: []);
+        $request = $this->getLastRequest();
+        $this->assertSame('POST', $request->getMethod());
+        $this->assertStringEndsWith('v1/extractions/stream', $request->getUri()->getPath());
+    }
+
     public function testGet(): void
     {
         $fixture = $this->loadFixture('extraction');
         $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
-        $result = $client->extractions()->get('test_extraction_id');
+        $result = $client->extractions()->get('test_extraction_id', includeOutput: true);
         $this->assertInstanceOf(\Retab\Resource\Extraction::class, $result);
         $this->assertSame($fixture['id'], $result->id);
         $this->assertSame($fixture['model'], $result->model);
@@ -61,6 +71,8 @@ class ExtractionsTest extends TestCase
         $request = $this->getLastRequest();
         $this->assertSame('GET', $request->getMethod());
         $this->assertStringEndsWith('v1/extractions/test_extraction_id', $request->getUri()->getPath());
+        parse_str($request->getUri()->getQuery(), $query);
+        $this->assertArrayHasKey('include_output', $query);
     }
 
     public function testDelete(): void
@@ -70,6 +82,20 @@ class ExtractionsTest extends TestCase
         $request = $this->getLastRequest();
         $this->assertSame('DELETE', $request->getMethod());
         $this->assertStringEndsWith('v1/extractions/test_extraction_id', $request->getUri()->getPath());
+    }
+
+    public function testCreateExtractionCancel(): void
+    {
+        $fixture = $this->loadFixture('extraction');
+        $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
+        $result = $client->extractions()->createExtractionCancel('test_extraction_id');
+        $this->assertInstanceOf(\Retab\Resource\Extraction::class, $result);
+        $this->assertSame($fixture['id'], $result->id);
+        $this->assertSame($fixture['model'], $result->model);
+        $this->assertIsArray($result->toArray());
+        $request = $this->getLastRequest();
+        $this->assertSame('POST', $request->getMethod());
+        $this->assertStringEndsWith('v1/extractions/test_extraction_id/cancel', $request->getUri()->getPath());
     }
 
     public function testSources(): void

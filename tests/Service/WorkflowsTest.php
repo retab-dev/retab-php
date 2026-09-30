@@ -17,7 +17,7 @@ class WorkflowsTest extends TestCase
     {
         $fixture = $this->loadFixture('list_workflow');
         $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
-        $result = $client->workflows()->list(before: 'test_value', after: 'test_value', limit: 1, order: \Retab\Resource\JobsOrder::Asc, sortBy: 'test_value');
+        $result = $client->workflows()->list(before: 'test_value', after: 'test_value', limit: 1, order: \Retab\Resource\EditsOrder::Asc, sortBy: 'test_value', projectId: 'test_value');
         $this->assertInstanceOf(\Retab\PaginatedResponse::class, $result);
         $request = $this->getLastRequest();
         $this->assertSame('GET', $request->getMethod());
@@ -28,19 +28,116 @@ class WorkflowsTest extends TestCase
         $this->assertArrayHasKey('limit', $query);
         $this->assertSame('asc', $query['order']);
         $this->assertSame('test_value', $query['sort_by']);
+        $this->assertSame('test_value', $query['project_id']);
     }
 
     public function testCreate(): void
     {
         $fixture = $this->loadFixture('workflow');
         $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
-        $result = $client->workflows()->create();
+        $result = $client->workflows()->create(projectId: 'test_value');
         $this->assertInstanceOf(\Retab\Resource\Workflow::class, $result);
         $this->assertSame($fixture['id'], $result->id);
         $this->assertIsArray($result->toArray());
         $request = $this->getLastRequest();
         $this->assertSame('POST', $request->getMethod());
         $this->assertStringEndsWith('v1/workflows', $request->getUri()->getPath());
+        $body = json_decode((string) $request->getBody(), true);
+        $this->assertSame('test_value', $body['project_id']);
+    }
+
+    public function testApply(): void
+    {
+        $fixture = $this->loadFixture('declarative_apply_response');
+        $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
+        $result = $client->workflows()->apply(yamlDefinition: 'test_value');
+        $this->assertInstanceOf(\Retab\Resource\DeclarativeApplyResponse::class, $result);
+        $this->assertSame($fixture['workflow_id'], $result->workflowId);
+        $this->assertIsArray($result->toArray());
+        $request = $this->getLastRequest();
+        $this->assertSame('POST', $request->getMethod());
+        $this->assertStringEndsWith('v1/workflows/spec/apply', $request->getUri()->getPath());
+        $body = json_decode((string) $request->getBody(), true);
+        $this->assertSame('test_value', $body['yaml_definition']);
+    }
+
+    public function testPlan(): void
+    {
+        $fixture = $this->loadFixture('declarative_plan_response');
+        $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
+        $result = $client->workflows()->plan(yamlDefinition: 'test_value');
+        $this->assertInstanceOf(\Retab\Resource\DeclarativePlanResponse::class, $result);
+        $this->assertSame($fixture['workflow_id'], $result->workflowId);
+        $this->assertIsArray($result->toArray());
+        $request = $this->getLastRequest();
+        $this->assertSame('POST', $request->getMethod());
+        $this->assertStringEndsWith('v1/workflows/spec/plan', $request->getUri()->getPath());
+        $body = json_decode((string) $request->getBody(), true);
+        $this->assertSame('test_value', $body['yaml_definition']);
+    }
+
+    public function testListVersions(): void
+    {
+        $fixture = $this->loadFixture('list_workflow_graph_version');
+        $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
+        $result = $client->workflows()->listVersions(workflowId: 'test_value', before: 'test_value', after: 'test_value', limit: 1);
+        $this->assertInstanceOf(\Retab\PaginatedResponse::class, $result);
+        $request = $this->getLastRequest();
+        $this->assertSame('GET', $request->getMethod());
+        $this->assertStringEndsWith('v1/workflows/versions', $request->getUri()->getPath());
+        parse_str($request->getUri()->getQuery(), $query);
+        $this->assertSame('test_value', $query['workflow_id']);
+        $this->assertSame('test_value', $query['before']);
+        $this->assertSame('test_value', $query['after']);
+        $this->assertArrayHasKey('limit', $query);
+    }
+
+    public function testListDiff(): void
+    {
+        $fixture = $this->loadFixture('workflow_graph_version_diff');
+        $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
+        $result = $client->workflows()->listDiff(workflowId: 'test_value', fromWorkflowVersionId: 'test_value', toWorkflowVersionId: 'test_value');
+        $this->assertInstanceOf(\Retab\Resource\WorkflowGraphVersionDiff::class, $result);
+        $this->assertSame($fixture['from_workflow_version_id'], $result->fromWorkflowVersionId);
+        $this->assertIsArray($result->toArray());
+        $request = $this->getLastRequest();
+        $this->assertSame('GET', $request->getMethod());
+        $this->assertStringEndsWith('v1/workflows/versions/diff', $request->getUri()->getPath());
+        parse_str($request->getUri()->getQuery(), $query);
+        $this->assertSame('test_value', $query['workflow_id']);
+        $this->assertSame('test_value', $query['from_workflow_version_id']);
+        $this->assertSame('test_value', $query['to_workflow_version_id']);
+    }
+
+    public function testGetVersion(): void
+    {
+        $fixture = $this->loadFixture('workflow_graph_version');
+        $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
+        $result = $client->workflows()->getVersion('test_workflow_version_id', workflowId: 'test_value');
+        $this->assertInstanceOf(\Retab\Resource\WorkflowGraphVersion::class, $result);
+        $this->assertSame($fixture['id'], $result->id);
+        $this->assertSame($fixture['workflow_id'], $result->workflowId);
+        $this->assertIsArray($result->toArray());
+        $request = $this->getLastRequest();
+        $this->assertSame('GET', $request->getMethod());
+        $this->assertStringEndsWith('v1/workflows/versions/test_workflow_version_id', $request->getUri()->getPath());
+        parse_str($request->getUri()->getQuery(), $query);
+        $this->assertSame('test_value', $query['workflow_id']);
+    }
+
+    public function testCreateVersionRestore(): void
+    {
+        $fixture = $this->loadFixture('workflow');
+        $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
+        $result = $client->workflows()->createVersionRestore('test_workflow_version_id', workflowId: 'test_value');
+        $this->assertInstanceOf(\Retab\Resource\Workflow::class, $result);
+        $this->assertSame($fixture['id'], $result->id);
+        $this->assertIsArray($result->toArray());
+        $request = $this->getLastRequest();
+        $this->assertSame('POST', $request->getMethod());
+        $this->assertStringEndsWith('v1/workflows/versions/test_workflow_version_id/restore', $request->getUri()->getPath());
+        parse_str($request->getUri()->getQuery(), $query);
+        $this->assertSame('test_value', $query['workflow_id']);
     }
 
     public function testGet(): void
@@ -78,16 +175,17 @@ class WorkflowsTest extends TestCase
         $this->assertStringEndsWith('v1/workflows/test_workflow_id', $request->getUri()->getPath());
     }
 
-    public function testDiagnose(): void
+    public function testDiscardDraft(): void
     {
-        $fixture = $this->loadFixture('workflow_diagnosis_response');
+        $fixture = $this->loadFixture('workflow');
         $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
-        $result = $client->workflows()->diagnose('test_workflow_id');
-        $this->assertInstanceOf(\Retab\Resource\WorkflowDiagnosisResponse::class, $result);
+        $result = $client->workflows()->discardDraft('test_workflow_id');
+        $this->assertInstanceOf(\Retab\Resource\Workflow::class, $result);
+        $this->assertSame($fixture['id'], $result->id);
         $this->assertIsArray($result->toArray());
         $request = $this->getLastRequest();
         $this->assertSame('POST', $request->getMethod());
-        $this->assertStringEndsWith('v1/workflows/test_workflow_id/diagnose-graph', $request->getUri()->getPath());
+        $this->assertStringEndsWith('v1/workflows/test_workflow_id/discard-draft', $request->getUri()->getPath());
     }
 
     public function testPublish(): void

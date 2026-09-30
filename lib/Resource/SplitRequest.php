@@ -6,14 +6,14 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
-/** Canonical split request. */
+/** Request body to create a split. */
 readonly class SplitRequest implements \JsonSerializable
 {
     use JsonSerializableTrait;
 
     public function __construct(
         /** The document to split */
-        public MimeData|FileRef $document,
+        public MimeData $document,
         /**
          * The subdocuments to split the document into
          * @var array<\Retab\Resource\Subdocument>
@@ -27,8 +27,9 @@ readonly class SplitRequest implements \JsonSerializable
         public ?int $nConsensus = null,
         /** If true, skip the LLM cache and force a fresh completion */
         public ?bool $bustCache = null,
-    ) {
-    }
+        /** If true, run asynchronously: returns immediately with status 'queued' and an empty output. Poll GET /v1/<primitive>/{id} until status is terminal. Mutually exclusive with stream. */
+        public ?bool $background = null,
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -42,12 +43,13 @@ readonly class SplitRequest implements \JsonSerializable
             }
         }
         return new self(
-            document: $data['document'],
-            subdocuments: array_map(fn ($item) => Subdocument::fromArray($item), $data['subdocuments']),
+            document: MimeData::fromArray($data['document']),
+            subdocuments: array_map(fn($item) => Subdocument::fromArray($item), $data['subdocuments']),
             model: $data['model'] ?? null,
             instructions: $data['instructions'] ?? null,
             nConsensus: $data['n_consensus'] ?? null,
             bustCache: $data['bust_cache'] ?? null,
+            background: $data['background'] ?? null,
         );
     }
 
@@ -56,11 +58,12 @@ readonly class SplitRequest implements \JsonSerializable
     {
         return [
             'document' => $this->document->toArray(),
-            'subdocuments' => array_map(fn ($item) => $item->toArray(), $this->subdocuments),
+            'subdocuments' => array_map(fn($item) => $item->toArray(), $this->subdocuments),
             'model' => $this->model,
             'instructions' => $this->instructions,
             'n_consensus' => $this->nConsensus,
             'bust_cache' => $this->bustCache,
+            'background' => $this->background,
         ];
     }
 }

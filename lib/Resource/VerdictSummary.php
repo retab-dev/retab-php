@@ -11,27 +11,26 @@ readonly class VerdictSummary implements \JsonSerializable
     use JsonSerializableTrait;
 
     public function __construct(
-        public bool $result,
+        public bool $passed,
         public ?int $assertionsPassed = null,
         public ?int $assertionsFailed = null,
         public ?int $blockedAssertions = null,
         /** @var array<string>|null */
         public ?array $failedAssertionIds = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
         foreach ([
-            'result',
+            'passed',
         ] as $__required) {
             if (!array_key_exists($__required, $data)) {
                 throw new \UnexpectedValueException("Missing required field '$__required' for VerdictSummary::fromArray()");
             }
         }
         return new self(
-            result: $data['result'],
+            passed: $data['passed'],
             assertionsPassed: $data['assertions_passed'] ?? null,
             assertionsFailed: $data['assertions_failed'] ?? null,
             blockedAssertions: $data['blocked_assertions'] ?? null,
@@ -43,7 +42,7 @@ readonly class VerdictSummary implements \JsonSerializable
     public function toArray(): array
     {
         return [
-            'result' => $this->result,
+            'passed' => $this->passed,
             'assertions_passed' => $this->assertionsPassed,
             'assertions_failed' => $this->assertionsFailed,
             'blocked_assertions' => $this->blockedAssertions,

@@ -7,7 +7,6 @@
     "key": {}
   },
   "model": "test_model",
-  "image_resolution_dpi": 1,
   "instructions": "test_instructions",
   "n_consensus": 1,
   "metadata": {
@@ -19,5 +18,7 @@
     }
   ],
   "bust_cache": true,
-  "stream": true
+  "stream": true,
+  "background": true,
+  "deep_extraction": true
 }

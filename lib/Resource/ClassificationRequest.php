@@ -13,7 +13,7 @@ readonly class ClassificationRequest implements \JsonSerializable
 
     public function __construct(
         /** The document to classify */
-        public MimeData|FileRef $document,
+        public MimeData $document,
         /**
          * The categories to classify the document into
          * @var array<\Retab\Resource\Category>
@@ -29,8 +29,9 @@ readonly class ClassificationRequest implements \JsonSerializable
         public ?int $nConsensus = null,
         /** If true, skip the LLM cache and force a fresh completion */
         public ?bool $bustCache = null,
-    ) {
-    }
+        /** If true, run asynchronously: returns immediately with status 'queued' and an empty output. Poll GET /v1/<primitive>/{id} until status is terminal. Mutually exclusive with stream. */
+        public ?bool $background = null,
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -44,13 +45,14 @@ readonly class ClassificationRequest implements \JsonSerializable
             }
         }
         return new self(
-            document: $data['document'],
-            categories: array_map(fn ($item) => Category::fromArray($item), $data['categories']),
+            document: MimeData::fromArray($data['document']),
+            categories: array_map(fn($item) => Category::fromArray($item), $data['categories']),
             model: $data['model'] ?? null,
             firstNPages: $data['first_n_pages'] ?? null,
             instructions: $data['instructions'] ?? null,
             nConsensus: $data['n_consensus'] ?? null,
             bustCache: $data['bust_cache'] ?? null,
+            background: $data['background'] ?? null,
         );
     }
 
@@ -59,12 +61,13 @@ readonly class ClassificationRequest implements \JsonSerializable
     {
         return [
             'document' => $this->document->toArray(),
-            'categories' => array_map(fn ($item) => $item->toArray(), $this->categories),
+            'categories' => array_map(fn($item) => $item->toArray(), $this->categories),
             'model' => $this->model,
             'first_n_pages' => $this->firstNPages,
             'instructions' => $this->instructions,
             'n_consensus' => $this->nConsensus,
             'bust_cache' => $this->bustCache,
+            'background' => $this->background,
         ];
     }
 }

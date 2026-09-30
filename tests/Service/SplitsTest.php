@@ -17,7 +17,7 @@ class SplitsTest extends TestCase
     {
         $fixture = $this->loadFixture('list_split');
         $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
-        $result = $client->splits()->list(before: 'test_value', after: 'test_value', limit: 1, order: \Retab\Resource\JobsOrder::Asc, filename: 'test_value', fromDate: 'test_value', toDate: 'test_value');
+        $result = $client->splits()->list(before: 'test_value', after: 'test_value', limit: 1, order: \Retab\Resource\EditsOrder::Asc, filename: 'test_value', status: \Retab\Resource\EditStatus::Pending, fromDate: 'test_value', toDate: 'test_value');
         $this->assertInstanceOf(\Retab\PaginatedResponse::class, $result);
         $request = $this->getLastRequest();
         $this->assertSame('GET', $request->getMethod());
@@ -28,6 +28,7 @@ class SplitsTest extends TestCase
         $this->assertArrayHasKey('limit', $query);
         $this->assertSame('asc', $query['order']);
         $this->assertSame('test_value', $query['filename']);
+        $this->assertSame('pending', $query['status']);
         $this->assertSame('test_value', $query['from_date']);
         $this->assertSame('test_value', $query['to_date']);
     }
@@ -36,7 +37,7 @@ class SplitsTest extends TestCase
     {
         $fixture = $this->loadFixture('split');
         $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
-        $result = $client->splits()->create(document: 'test_value', subdocuments: []);
+        $result = $client->splits()->create(document: \Retab\Resource\MimeData::fromArray($this->loadFixture('mime_data')), subdocuments: []);
         $this->assertInstanceOf(\Retab\Resource\Split::class, $result);
         $this->assertSame($fixture['id'], $result->id);
         $this->assertSame($fixture['model'], $result->model);
@@ -46,11 +47,23 @@ class SplitsTest extends TestCase
         $this->assertStringEndsWith('v1/splits', $request->getUri()->getPath());
     }
 
+    public function testCreateReconstruct(): void
+    {
+        $fixture = $this->loadFixture('reconstruct_response');
+        $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
+        $result = $client->splits()->createReconstruct(document: \Retab\Resource\ReconstructDocumentRef::fromArray($this->loadFixture('reconstruct_document_ref')), subdocuments: []);
+        $this->assertInstanceOf(\Retab\Resource\ReconstructResponse::class, $result);
+        $this->assertIsArray($result->toArray());
+        $request = $this->getLastRequest();
+        $this->assertSame('POST', $request->getMethod());
+        $this->assertStringEndsWith('v1/splits/reconstruct', $request->getUri()->getPath());
+    }
+
     public function testGet(): void
     {
         $fixture = $this->loadFixture('split');
         $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
-        $result = $client->splits()->get('test_split_id');
+        $result = $client->splits()->get('test_split_id', includeOutput: true);
         $this->assertInstanceOf(\Retab\Resource\Split::class, $result);
         $this->assertSame($fixture['id'], $result->id);
         $this->assertSame($fixture['model'], $result->model);
@@ -58,6 +71,8 @@ class SplitsTest extends TestCase
         $request = $this->getLastRequest();
         $this->assertSame('GET', $request->getMethod());
         $this->assertStringEndsWith('v1/splits/test_split_id', $request->getUri()->getPath());
+        parse_str($request->getUri()->getQuery(), $query);
+        $this->assertArrayHasKey('include_output', $query);
     }
 
     public function testDelete(): void
@@ -67,6 +82,20 @@ class SplitsTest extends TestCase
         $request = $this->getLastRequest();
         $this->assertSame('DELETE', $request->getMethod());
         $this->assertStringEndsWith('v1/splits/test_split_id', $request->getUri()->getPath());
+    }
+
+    public function testCreateSplitCancel(): void
+    {
+        $fixture = $this->loadFixture('split');
+        $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
+        $result = $client->splits()->createSplitCancel('test_split_id');
+        $this->assertInstanceOf(\Retab\Resource\Split::class, $result);
+        $this->assertSame($fixture['id'], $result->id);
+        $this->assertSame($fixture['model'], $result->model);
+        $this->assertIsArray($result->toArray());
+        $request = $this->getLastRequest();
+        $this->assertSame('POST', $request->getMethod());
+        $this->assertStringEndsWith('v1/splits/test_split_id/cancel', $request->getUri()->getPath());
     }
 
     public function testPaginationBoundary(): void

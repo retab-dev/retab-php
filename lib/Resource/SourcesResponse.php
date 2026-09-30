@@ -6,6 +6,15 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
+/**
+ * An extraction's output annotated with the source that backs each value.
+ *
+ * Returned when fetching the sources for an extraction. Carries the source `file`
+ * and its detected `document_type`, the original `extraction` output, and a
+ * parallel `sources` tree where each leaf is a `{value, source}` object locating
+ * the value in the document (a page region for PDFs, a cell for spreadsheets, a
+ * text span for plain text, and so on).
+ */
 readonly class SourcesResponse implements \JsonSerializable
 {
     use JsonSerializableTrait;
@@ -15,7 +24,7 @@ readonly class SourcesResponse implements \JsonSerializable
         public string $extractionId,
         /** Detected document type of the source file */
         public SourcesResponseDocumentType $documentType,
-        /** File metadata (id, filename, mime_type) */
+        /** Source file metadata (id, filename, mime_type). */
         public FileRef $file,
         /**
          * Original extraction output
@@ -23,13 +32,12 @@ readonly class SourcesResponse implements \JsonSerializable
          */
         public array $extraction,
         /**
-         * Same shape as extraction but leaves are {value, source} objects
+         * Same shape as extraction but leaves are {value, source} objects. Non-null source entries include file_id.
          * @var array<string, mixed>
          */
         public array $sources,
         public string $object = 'extraction.sources',
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self

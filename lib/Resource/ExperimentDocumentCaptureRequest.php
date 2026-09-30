@@ -12,23 +12,22 @@ readonly class ExperimentDocumentCaptureRequest implements \JsonSerializable
     use JsonSerializableTrait;
 
     public function __construct(
-        public string $workflowRunId,
+        public string $runId,
         public ?string $stepId = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
         foreach ([
-            'workflow_run_id',
+            'run_id',
         ] as $__required) {
             if (!array_key_exists($__required, $data)) {
                 throw new \UnexpectedValueException("Missing required field '$__required' for ExperimentDocumentCaptureRequest::fromArray()");
             }
         }
         return new self(
-            workflowRunId: $data['workflow_run_id'],
+            runId: $data['run_id'],
             stepId: $data['step_id'] ?? null,
         );
     }
@@ -37,7 +36,7 @@ readonly class ExperimentDocumentCaptureRequest implements \JsonSerializable
     public function toArray(): array
     {
         return [
-            'workflow_run_id' => $this->workflowRunId,
+            'run_id' => $this->runId,
             'step_id' => $this->stepId,
         ];
     }

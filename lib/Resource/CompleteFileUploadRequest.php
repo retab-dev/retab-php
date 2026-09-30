@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
+/** Body to finalize a file upload, optionally carrying the uploaded content's `sha256` checksum for verification. */
 readonly class CompleteFileUploadRequest implements \JsonSerializable
 {
     use JsonSerializableTrait;
@@ -13,8 +14,7 @@ readonly class CompleteFileUploadRequest implements \JsonSerializable
     public function __construct(
         /** Optional SHA-256 checksum */
         public ?string $sha256 = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self

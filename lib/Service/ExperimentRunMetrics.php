@@ -6,24 +6,37 @@ declare(strict_types=1);
 
 namespace Retab\Service;
 
+use Retab\Resource\ExperimentByDocumentMetricsResponse;
+use Retab\Resource\ExperimentByTargetMetricsResponse;
+use Retab\Resource\ExperimentMetricsMissingError;
+use Retab\Resource\ExperimentMetricsStaleError;
 use Retab\Resource\ExperimentSummaryMetricsResponse;
+use Retab\Resource\ExperimentVotesMetricsResponse;
 
 class ExperimentRunMetrics
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
-    }
+    ) {}
 
     /**
      * Get Experiment Metrics For Run
+     *
+     * Get metrics for an experiment run.
+     *
+     * Requires the `run_id` query parameter. Use `view` to choose the breakdown
+     * (`summary`, `by_document`, `by_target`, or `votes`), and narrow with
+     * `document_id` or `target_path`. By default each score-bearing row also
+     * carries a `prior_score` from the previous completed run; pass
+     * `include_prior=false` to omit it or `prior_run_id` to compare against a
+     * specific run.
      * @param string $runId
      * @param \Retab\Resource\ExperimentRunMetricsView $view Defaults to "summary".
      * @param string|null $documentId
      * @param string|null $targetPath
      * @param bool|null $includePrior Defaults to true.
      * @param string|null $priorRunId
-     * @return \Retab\Resource\ExperimentSummaryMetricsResponse
+     * @return \Retab\Resource\ExperimentSummaryMetricsResponse|\Retab\Resource\ExperimentByDocumentMetricsResponse|\Retab\Resource\ExperimentByTargetMetricsResponse|\Retab\Resource\ExperimentVotesMetricsResponse|\Retab\Resource\ExperimentMetricsStaleError|\Retab\Resource\ExperimentMetricsMissingError
      * @throws \Retab\Exception\RetabException
      */
     public function get(
@@ -34,7 +47,7 @@ class ExperimentRunMetrics
         ?bool $includePrior = null,
         ?string $priorRunId = null,
         ?\Retab\RequestOptions $options = null,
-    ): \Retab\Resource\ExperimentSummaryMetricsResponse {
+    ): \Retab\Resource\ExperimentSummaryMetricsResponse|\Retab\Resource\ExperimentByDocumentMetricsResponse|\Retab\Resource\ExperimentByTargetMetricsResponse|\Retab\Resource\ExperimentVotesMetricsResponse|\Retab\Resource\ExperimentMetricsStaleError|\Retab\Resource\ExperimentMetricsMissingError {
         $query = array_filter([
             'run_id' => $runId,
             'view' => $view->value,
@@ -42,13 +55,15 @@ class ExperimentRunMetrics
             'target_path' => $targetPath,
             'include_prior' => $includePrior,
             'prior_run_id' => $priorRunId,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'GET',
             path: 'v1/workflows/experiments/metrics',
             query: $query,
             options: $options,
         );
-        return ExperimentSummaryMetricsResponse::fromArray($response);
+        return match ($response['kind'] ?? null) {
+            'summary' => ExperimentSummaryMetricsResponse::fromArray($response), 'by_document' => ExperimentByDocumentMetricsResponse::fromArray($response), 'by_target' => ExperimentByTargetMetricsResponse::fromArray($response), 'votes' => ExperimentVotesMetricsResponse::fromArray($response), 'stale_metrics' => ExperimentMetricsStaleError::fromArray($response), 'no_metrics' => ExperimentMetricsMissingError::fromArray($response), default => throw new \UnexpectedValueException(sprintf('Unknown kind: %s', json_encode($response['kind'] ?? null))),
+        };
     }
 }

@@ -17,13 +17,14 @@ class WorkflowStepsTest extends TestCase
     {
         $fixture = $this->loadFixture('list_workflow_run_step');
         $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
-        $result = $client->workflowSteps()->list(runId: 'test_value', blockId: 'test_value', blockIds: [], stepId: 'test_value', blockType: [], status: [], before: 'test_value', after: 'test_value', limit: 1);
+        $result = $client->workflows()->steps()->list(runId: 'test_value', workflowId: 'test_value', blockId: 'test_value', stepId: 'test_value', blockType: [], status: [], before: 'test_value', after: 'test_value', limit: 1);
         $this->assertInstanceOf(\Retab\PaginatedResponse::class, $result);
         $request = $this->getLastRequest();
         $this->assertSame('GET', $request->getMethod());
         $this->assertStringEndsWith('v1/workflows/steps', $request->getUri()->getPath());
         parse_str($request->getUri()->getQuery(), $query);
         $this->assertSame('test_value', $query['run_id']);
+        $this->assertSame('test_value', $query['workflow_id']);
         $this->assertSame('test_value', $query['block_id']);
         $this->assertSame('test_value', $query['step_id']);
         $this->assertSame('test_value', $query['before']);
@@ -35,13 +36,15 @@ class WorkflowStepsTest extends TestCase
     {
         $fixture = $this->loadFixture('workflow_run_step');
         $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
-        $result = $client->workflowSteps()->get('test_step_id');
+        $result = $client->workflows()->steps()->get('test_step_id', runId: 'test_value');
         $this->assertInstanceOf(\Retab\Resource\WorkflowRunStep::class, $result);
         $this->assertSame($fixture['block_id'], $result->blockId);
         $this->assertIsArray($result->toArray());
         $request = $this->getLastRequest();
         $this->assertSame('GET', $request->getMethod());
         $this->assertStringEndsWith('v1/workflows/steps/test_step_id', $request->getUri()->getPath());
+        parse_str($request->getUri()->getQuery(), $query);
+        $this->assertSame('test_value', $query['run_id']);
     }
 
     public function testPaginationBoundary(): void
@@ -51,7 +54,7 @@ class WorkflowStepsTest extends TestCase
         $fixture['list_metadata']['before'] = null;
         $fixture['list_metadata']['after'] = null;
         $client = $this->createMockClient([['status' => 200, 'body' => $fixture]]);
-        $result = $client->workflowSteps()->list();
+        $result = $client->workflows()->steps()->list();
         $this->assertInstanceOf(\Retab\PaginatedResponse::class, $result);
         // Verify cursors are null on boundary page
         $this->assertNull($result->listMetadata['before']);

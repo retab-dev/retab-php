@@ -12,12 +12,16 @@ readonly class WorkflowArtifact implements \JsonSerializable
     use JsonSerializableTrait;
 
     public function __construct(
-        /** Artifact operation that determines the backing record type */
+        /** The operation that produced this artifact */
         public StepArtifactRefOperation $operation,
-        /** Persisted resource identifier */
+        /** Resource identifier */
         public string $id,
-    ) {
-    }
+        /**
+         * Additional properties not captured by named fields
+         * @var array<string, mixed>|null
+         */
+        public ?array $additionalProperties = null,
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -33,6 +37,7 @@ readonly class WorkflowArtifact implements \JsonSerializable
         return new self(
             operation: StepArtifactRefOperation::from($data['operation']),
             id: $data['id'],
+            additionalProperties: $data['additionalProperties'] ?? null,
         );
     }
 
@@ -42,6 +47,7 @@ readonly class WorkflowArtifact implements \JsonSerializable
         return [
             'operation' => $this->operation->value,
             'id' => $this->id,
+            'additionalProperties' => $this->additionalProperties,
         ];
     }
 }

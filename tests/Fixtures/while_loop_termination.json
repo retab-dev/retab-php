@@ -1,7 +1,7 @@
 {
   "operation": "while_loop_termination",
   "id": "01234",
-  "workflow_run_id": "workflow_run_id_01234",
+  "run_id": "run_id_01234",
   "step_id": "step_id_01234",
   "termination_reason": "max_iterations_reached",
   "evaluations": [
@@ -14,7 +14,7 @@
       "matched": true,
       "branch_name": "Test",
       "logical_operator": "and",
-      "per_item": [
+      "items": [
         {
           "index": 1,
           "indices": [
@@ -32,7 +32,7 @@
           "expected": {},
           "actual": {},
           "matched": true,
-          "per_item": [
+          "items": [
             {
               "index": 1,
               "indices": [
@@ -50,7 +50,7 @@
         "expected": {},
         "actual": {},
         "matched": true,
-        "per_item": [
+        "items": [
           {
             "index": 1,
             "indices": [
@@ -68,7 +68,7 @@
             "expected": {},
             "actual": {},
             "matched": true,
-            "per_item": [
+            "items": [
               {
                 "index": 1,
                 "indices": [

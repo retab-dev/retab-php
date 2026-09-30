@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
+/** Body for updating an edit template. Only the supplied fields (`name`, `form_fields`) are changed. */
 readonly class UpdateEditTemplateRequest implements \JsonSerializable
 {
     use JsonSerializableTrait;
@@ -18,15 +19,14 @@ readonly class UpdateEditTemplateRequest implements \JsonSerializable
          * @var array<\Retab\Resource\FormField>|null
          */
         public ?array $formFields = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
         return new self(
             name: $data['name'] ?? null,
-            formFields: isset($data['form_fields']) ? array_map(fn ($item) => FormField::fromArray($item), $data['form_fields']) : null,
+            formFields: isset($data['form_fields']) ? array_map(fn($item) => FormField::fromArray($item), $data['form_fields']) : null,
         );
     }
 
@@ -35,7 +35,7 @@ readonly class UpdateEditTemplateRequest implements \JsonSerializable
     {
         return [
             'name' => $this->name,
-            'form_fields' => $this->formFields !== null ? array_map(fn ($item) => $item->toArray(), $this->formFields) : null,
+            'form_fields' => $this->formFields !== null ? array_map(fn($item) => $item->toArray(), $this->formFields) : null,
         ];
     }
 }

@@ -10,9 +10,27 @@ use Retab\Resource\WorkflowExperiment;
 
 class WorkflowExperiments
 {
+    private ?ExperimentRunMetrics $metrics = null;
+    private ?ExperimentRunResults $results = null;
+    private ?ExperimentRuns $runs = null;
+
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
+    ) {}
+
+    public function metrics(): ExperimentRunMetrics
+    {
+        return $this->metrics ??= new ExperimentRunMetrics($this->client);
+    }
+
+    public function results(): ExperimentRunResults
+    {
+        return $this->results ??= new ExperimentRunResults($this->client);
+    }
+
+    public function runs(): ExperimentRuns
+    {
+        return $this->runs ??= new ExperimentRuns($this->client);
     }
 
     /**
@@ -20,32 +38,34 @@ class WorkflowExperiments
      *
      * List experiments under one workflow with cursor pagination.
      *
-     * The enrichment passes (latest-run snapshot, block info, drift detection)
-     * run on the paginated page, not the full collection — so they scale with
-     * ``limit``, not with the total experiment count under the workflow.
+     * Optionally filter by `block_id`. Each experiment is returned with its
+     * latest-run snapshot, block info, and drift detection.
      * @param string $workflowId
+     * @param string|null $blockId
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Defaults to 50.
-     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
+     * @param \Retab\Resource\EditsOrder $order Defaults to "desc".
      * @return \Retab\PaginatedResponse<\Retab\Resource\WorkflowExperiment>
      * @throws \Retab\Exception\RetabException
      */
     public function list(
         string $workflowId,
+        ?string $blockId = null,
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
+        \Retab\Resource\EditsOrder $order = \Retab\Resource\EditsOrder::Desc,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\PaginatedResponse {
         $query = array_filter([
             'workflow_id' => $workflowId,
+            'block_id' => $blockId,
             'before' => $before,
             'after' => $after,
             'limit' => $limit,
             'order' => $order->value,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
             path: 'v1/workflows/experiments',
@@ -60,7 +80,7 @@ class WorkflowExperiments
      *
      * Create an experiment.
      *
-     * When ``source_experiment_id`` is set, duplicates the source experiment
+     * When `source_experiment_id` is set, duplicates the source experiment
      * (block, name + "(Copy)", n_consensus, documents) and rejects any other
      * field. Otherwise creates a fresh experiment from the provided fields.
      * @param string $workflowId
@@ -91,7 +111,7 @@ class WorkflowExperiments
             'n_consensus' => $nConsensus?->value,
             'name' => $name,
             'source_experiment_id' => $sourceExperimentId,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/workflows/experiments',
@@ -103,6 +123,12 @@ class WorkflowExperiments
 
     /**
      * Get Experiment
+     *
+     * Retrieve a single experiment.
+     *
+     * Identified by `experiment_id`. Returns the experiment along with its
+     * latest-run status, score, staleness, and schema-drift detection. Returns
+     * 404 if no experiment with that ID exists.
      * @param string $experimentId
      * @return \Retab\Resource\WorkflowExperiment
      * @throws \Retab\Exception\RetabException
@@ -121,6 +147,12 @@ class WorkflowExperiments
 
     /**
      * Update Experiment
+     *
+     * Update an experiment.
+     *
+     * Identified by `experiment_id`. Send any of `name`, `n_consensus`,
+     * `documents`, or `document_captures`; omitted fields are left unchanged.
+     * Returns the updated experiment with its latest-run status and drift info.
      * @param string $experimentId
      * @param array<\Retab\Resource\ExperimentDocumentCaptureRequest>|null $documentCaptures
      * @param array<\Retab\Resource\ExplicitExperimentDocumentRequest>|null $documents
@@ -142,7 +174,7 @@ class WorkflowExperiments
             'documents' => $documents,
             'n_consensus' => $nConsensus?->value,
             'name' => $name,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'PATCH',
             path: 'v1/workflows/experiments/' . rawurlencode($experimentId),
@@ -154,6 +186,12 @@ class WorkflowExperiments
 
     /**
      * Delete Experiment
+     *
+     * Delete an experiment.
+     *
+     * Identified by `experiment_id`. Also removes the experiment's runs and
+     * results. Returns 204 on success, 404 if not found, and 409 if the latest
+     * run is still pending or running (cancel it first).
      * @param string $experimentId
      * @return void
      * @throws \Retab\Exception\RetabException

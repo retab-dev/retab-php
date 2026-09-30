@@ -6,20 +6,14 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
-/**
- * Gate when any required field in the extract schema is null/missing.
- *
- * First-class predicate because this is the most common real-world driver
- * for structured-extraction review.
- */
+/** Gate when any required field in the extract schema has no answer: null, missing, or an empty/whitespace-only string (extraction reports a string field it could not find as "", not null). Zero, false, and empty arrays/objects are real answers and do not gate. */
 readonly class ReviewAnyRequiredFieldNull implements \JsonSerializable
 {
     use JsonSerializableTrait;
 
     public function __construct(
         public string $kind = 'any_required_field_null',
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self

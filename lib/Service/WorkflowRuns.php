@@ -14,28 +14,26 @@ class WorkflowRuns
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
-    }
+    ) {}
 
     /**
      * List Workflow Runs
      *
      * List workflow runs with pagination and optional filters.
      * @param string|null $workflowId Filter by workflow ID
-     * @param \Retab\Resource\WorkflowRunsStatus|null $status Filter by single run status (deprecated, use 'statuses')
-     * @param string|null $statuses Filter by multiple statuses (comma-separated: pending,queued,running,completed,error,failed,awaiting_review,cancelled)
+     * @param \Retab\Resource\WorkflowRunsStatus|null $status Filter by run status
      * @param \Retab\Resource\WorkflowRunsStatus|null $excludeStatus Exclude runs with this status
-     * @param \Retab\Resource\WorkflowRunsTriggerType|null $triggerType Filter by single trigger type (deprecated, use 'trigger_types')
-     * @param string|null $triggerTypes Filter by multiple trigger types (comma-separated: manual,api,schedule,webhook,email,restart)
+     * @param \Retab\Resource\WorkflowRunsTriggerType|null $triggerType Filter by trigger type
      * @param string|null $fromDate Filter runs created on or after this date (YYYY-MM-DD)
      * @param string|null $toDate Filter runs created on or before this date (YYYY-MM-DD)
      * @param int|null $minDurationMs Filter runs with duration >= this value in milliseconds
      * @param int|null $maxDurationMs Filter runs with duration <= this value in milliseconds
      * @param string|null $search Search by run ID (partial match)
+     * @param string|null $metadata Filter by metadata equality: a JSON object of key/value pairs (e.g. {"tenant":"acme"}). Pairs AND together.
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Items per page Defaults to 20.
-     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
+     * @param \Retab\Resource\EditsOrder $order Defaults to "desc".
      * @param string|null $sortBy Defaults to "timing.created_at".
      * @return \Retab\PaginatedResponse<\Retab\Resource\WorkflowRun>
      * @throws \Retab\Exception\RetabException
@@ -43,40 +41,38 @@ class WorkflowRuns
     public function list(
         ?string $workflowId = null,
         ?\Retab\Resource\WorkflowRunsStatus $status = null,
-        ?string $statuses = null,
         ?\Retab\Resource\WorkflowRunsStatus $excludeStatus = null,
         ?\Retab\Resource\WorkflowRunsTriggerType $triggerType = null,
-        ?string $triggerTypes = null,
         ?string $fromDate = null,
         ?string $toDate = null,
         ?int $minDurationMs = null,
         ?int $maxDurationMs = null,
         ?string $search = null,
+        ?string $metadata = null,
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
+        \Retab\Resource\EditsOrder $order = \Retab\Resource\EditsOrder::Desc,
         ?string $sortBy = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\PaginatedResponse {
         $query = array_filter([
             'workflow_id' => $workflowId,
             'status' => $status?->value,
-            'statuses' => $statuses,
             'exclude_status' => $excludeStatus?->value,
             'trigger_type' => $triggerType?->value,
-            'trigger_types' => $triggerTypes,
             'from_date' => $fromDate,
             'to_date' => $toDate,
             'min_duration_ms' => $minDurationMs,
             'max_duration_ms' => $maxDurationMs,
             'search' => $search,
+            'metadata' => $metadata,
             'before' => $before,
             'after' => $after,
             'limit' => $limit,
             'order' => $order->value,
             'sort_by' => $sortBy,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
             path: 'v1/workflows/runs',
@@ -87,49 +83,35 @@ class WorkflowRuns
     }
 
     /**
-     * Create Workflow Run Route
+     * Create Workflow Run
      *
-     * Create a workflow run.
-     *
-     * Two creation paths, discriminated by ``restart_of``:
-     *
-     * - ``restart_of`` is ``None``: fresh run. ``workflow_id`` is required;
-     *   ``documents``, ``json_inputs``, and ``version`` carry the run inputs.
-     * - ``restart_of`` is set: restart of an existing run. The source run's
-     *   inputs are inherited; ``config_source`` selects ``draft`` vs
-     *   ``published`` config for the new run.
-     *
-     * The shape of the request enforces these invariants — see
-     * ``CreateWorkflowRunRequest``.
-     * @param string|null $workflowId Workflow id for the fresh run.
-     * @param array<string, \Retab\Resource\FileRef|\Retab\Resource\MimeDataInput>|null $documents Mapping of start_document block IDs to their input documents. Only valid for fresh-run creation (``restart_of`` is None).
-     * @param array<string, mixed>|null $jsonInputs Mapping of start-json block IDs to their input JSON data. Only valid for fresh-run creation (``restart_of`` is None).
+     * Create a fresh workflow run.
+     * @param string $workflowId Workflow id for the fresh run.
+     * @param array<string, \Retab\Resource\FileRef|\Retab\Resource\MimeData|\SplFileInfo|string|resource|array{filename?: string, url: string}|array{id: string, filename?: string, mime_type?: string}>|null $documents Mapping of start_document block IDs to their input documents.
+     * @param array<string, mixed>|null $jsonInputs Mapping of start-json block IDs to their input JSON data.
      * @param string|null $version Workflow version to run: 'production', 'draft', or a pinned version id like 'ver_...'. Only valid for fresh-run creation.
-     * @param string|null $restartOf When present, the new run is created as a restart of this source run id (the source run's inputs are inherited).
-     * @param \Retab\Resource\CreateRestartWorkflowRunRequestConfigSource|null $configSource Required when ``restart_of`` is set. Config source for the restarted run.
-     * @param string|null $commandId Optional idempotency key for deduplicating restart commands. Only valid when ``restart_of`` is set.
+     * @param array<string, string>|null $metadata User-defined metadata to associate with this workflow run.
      * @return \Retab\Resource\WorkflowRun
      * @throws \Retab\Exception\RetabException
      */
     public function create(
-        ?string $workflowId = null,
-        ?array $documents = null,
+        string $workflowId,
+        mixed $documents = null,
         ?array $jsonInputs = null,
         ?string $version = null,
-        ?string $restartOf = null,
-        ?\Retab\Resource\CreateRestartWorkflowRunRequestConfigSource $configSource = null,
-        ?string $commandId = null,
+        ?array $metadata = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\WorkflowRun {
+        if ($documents !== null) {
+            $documents = array_map(fn($__d) => \Retab\Resource\MimeDataCoerce::coerce($__d, $this->client), $documents);
+        }
         $body = array_filter([
             'workflow_id' => $workflowId,
             'documents' => $documents,
             'json_inputs' => $jsonInputs,
             'version' => $version,
-            'restart_of' => $restartOf,
-            'config_source' => $configSource?->value,
-            'command_id' => $commandId,
-        ], fn ($v) => $v !== null);
+            'metadata' => $metadata,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/workflows/runs',
@@ -152,9 +134,9 @@ class WorkflowRuns
      * @param \Retab\Resource\WorkflowRunsStatus|null $excludeStatus Optional status exclusion filter (intersects with completed-only export scope)
      * @param string|null $fromDate Optional start date filter (YYYY-MM-DD)
      * @param string|null $toDate Optional end date filter (YYYY-MM-DD)
-     * @param array<\Retab\Resource\WorkflowRunsTriggerType>|null $triggerTypes Optional trigger type filters
+     * @param \Retab\Resource\WorkflowRunsTriggerType|null $triggerType Optional trigger type filter
      * @param array<string>|null $preferredColumns Preferred data column order
-     * @param string|null $delimiter CSV field delimiter. Default is ';' (Excel-EU locale default); pass ',' for RFC 4180 / pandas compatibility. Cell values are always quoted when they contain the delimiter, the line terminator, or the quote character, with embedded quotes doubled per RFC 4180.
+     * @param string|null $delimiter CSV field delimiter. Default is ';' (the Excel EU-locale default); pass ',' for RFC 4180 compatibility. Cell values are always quoted when they contain the delimiter, the line terminator, or the quote character, with embedded quotes doubled per RFC 4180.
      * @param string|null $lineDelimiter CSV line delimiter
      * @param string|null $quote CSV quote character
      * @return \Retab\Resource\WorkflowExportPayloadResponse
@@ -170,7 +152,7 @@ class WorkflowRuns
         ?\Retab\Resource\WorkflowRunsStatus $excludeStatus = null,
         ?string $fromDate = null,
         ?string $toDate = null,
-        ?array $triggerTypes = null,
+        ?\Retab\Resource\WorkflowRunsTriggerType $triggerType = null,
         ?array $preferredColumns = null,
         ?string $delimiter = null,
         ?string $lineDelimiter = null,
@@ -187,12 +169,12 @@ class WorkflowRuns
             'exclude_status' => $excludeStatus?->value,
             'from_date' => $fromDate,
             'to_date' => $toDate,
-            'trigger_types' => $triggerTypes,
+            'trigger_type' => $triggerType?->value,
             'preferred_columns' => $preferredColumns,
             'delimiter' => $delimiter,
             'line_delimiter' => $lineDelimiter,
             'quote' => $quote,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/workflows/runs/export',
@@ -225,7 +207,7 @@ class WorkflowRuns
     /**
      * Delete Workflow Run
      *
-     * Delete a workflow run and its associated step data.
+     * Delete a workflow run and make its associated step data inaccessible.
      * @param string $runId
      * @return void
      * @throws \Retab\Exception\RetabException
@@ -257,7 +239,7 @@ class WorkflowRuns
     ): \Retab\Resource\CancelWorkflowResponse {
         $body = array_filter([
             'command_id' => $commandId,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/workflows/runs/' . rawurlencode($runId) . '/cancel',

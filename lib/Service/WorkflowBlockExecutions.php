@@ -12,8 +12,7 @@ class WorkflowBlockExecutions
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
-    }
+    ) {}
 
     /**
      * List Block Executions
@@ -21,9 +20,9 @@ class WorkflowBlockExecutions
      * List recent block executions for one workflow run block.
      *
      * Cursor pagination matches the conventions used by
-     * ``GET /v1/extractions`` — pass ``after`` from the previous page's
-     * ``list_metadata.after`` to advance, ``before`` to step backwards, and
-     * ``order`` to flip the sort direction. ``run_id`` + ``block_id`` are
+     * `GET /v1/extractions` — pass `after` from the previous page's
+     * `list_metadata.after` to advance, `before` to step backwards, and
+     * `order` to flip the sort direction. `run_id` + `block_id` are
      * required scope filters; without them this endpoint would expose
      * cross-run cursors that walk arbitrary block executions.
      * @param string $runId
@@ -31,7 +30,7 @@ class WorkflowBlockExecutions
      * @param string|null $before
      * @param string|null $after
      * @param int|null $limit Defaults to 20.
-     * @param \Retab\Resource\JobsOrder $order Defaults to "desc".
+     * @param \Retab\Resource\EditsOrder $order Defaults to "desc".
      * @return \Retab\PaginatedResponse<\Retab\Resource\StoredBlockExecution>
      * @throws \Retab\Exception\RetabException
      */
@@ -41,7 +40,7 @@ class WorkflowBlockExecutions
         ?string $before = null,
         ?string $after = null,
         ?int $limit = null,
-        \Retab\Resource\JobsOrder $order = \Retab\Resource\JobsOrder::Desc,
+        \Retab\Resource\EditsOrder $order = \Retab\Resource\EditsOrder::Desc,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\PaginatedResponse {
         $query = array_filter([
@@ -51,7 +50,7 @@ class WorkflowBlockExecutions
             'after' => $after,
             'limit' => $limit,
             'order' => $order->value,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
             path: 'v1/workflows/blocks/executions',
@@ -64,10 +63,10 @@ class WorkflowBlockExecutions
     /**
      * Create Block Execution
      *
-     * Create a block execution for ``block_id`` against the current draft.
+     * Create a block execution for `block_id` against the current draft.
      * @param string $runId Workflow run id that owns the step.
      * @param string $blockId Workflow block id to execute.
-     * @param string|null $stepId Optional concrete step id whose inputs should be used. When omitted, the block id is used as the canonical step lookup key.
+     * @param string|null $stepId Optional concrete step id whose inputs should be used. When omitted, the block id is used to look up the step.
      * @param int|null $nConsensus Optional override for n_consensus on extract / split / classifier blocks. Must be 3, 5, or 7.
      * @param bool|null $checkEligibility Whether to verify the upstream subgraph hasn't drifted since the source run. Disable only for explicit force-rerun flows.
      * @return \Retab\Resource\StoredBlockExecution
@@ -87,7 +86,7 @@ class WorkflowBlockExecutions
             'step_id' => $stepId,
             'n_consensus' => $nConsensus,
             'check_eligibility' => $checkEligibility,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/workflows/blocks/executions',

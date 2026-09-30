@@ -6,13 +6,22 @@ declare(strict_types=1);
 
 namespace Retab\Service;
 
+use Retab\Resource\ValidateWorkflowBlockConfigResponse;
 use Retab\Resource\WorkflowBlock;
+use Retab\Resource\WorkflowBlockVersion;
+use Retab\Resource\WorkflowBlockVersionDiff;
 
 class WorkflowBlocks
 {
+    private ?WorkflowBlockExecutions $executions = null;
+
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
+    ) {}
+
+    public function executions(): WorkflowBlockExecutions
+    {
+        return $this->executions ??= new WorkflowBlockExecutions($this->client);
     }
 
     /**
@@ -20,13 +29,13 @@ class WorkflowBlocks
      *
      * List blocks for a workflow with keyset cursor pagination.
      *
-     * Sorted by ``updated_at`` descending with ``id`` as the tiebreaker. Pass
-     * ``after`` (the previous response's ``list_metadata.after``) for the next
-     * page, ``before`` for the previous page. They are mutually exclusive; the
+     * Sorted by `updated_at` descending with `id` as the tiebreaker. Pass
+     * `after` (the previous response's `list_metadata.after`) for the next
+     * page, `before` for the previous page. They are mutually exclusive; the
      * 400 cleanly tells the caller which to drop.
      * @param string $workflowId
-     * @param string|null $before Block id cursor: return the page before this id (mutually exclusive with ``after``).
-     * @param string|null $after Block id cursor: return the page after this id (mutually exclusive with ``before``).
+     * @param string|null $before Block id cursor: return the page before this id (mutually exclusive with `after`).
+     * @param string|null $after Block id cursor: return the page after this id (mutually exclusive with `before`).
      * @param int|null $limit Maximum number of blocks to return per page (1-200). Defaults to 100.
      * @return \Retab\PaginatedResponse<\Retab\Resource\WorkflowBlock>
      * @throws \Retab\Exception\RetabException
@@ -43,7 +52,7 @@ class WorkflowBlocks
             'before' => $before,
             'after' => $after,
             'limit' => $limit,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
             path: 'v1/workflows/blocks',
@@ -57,10 +66,8 @@ class WorkflowBlocks
      * Create Block
      *
      * Create a new block in a workflow.
-     *
-     * This creates a block in the live workflow_blocks collection.
      * @param string $workflowId Workflow to create the block in.
-     * @param string|null $id Opaque block ID. Omit to let the server generate one. Block IDs are unique per ORGANIZATION (not per workflow) — reusing a human-friendly id like 'block_extract' across multiple workflows in the same org will fail with 409. Prefer the server-generated ``blk_<nanoid>`` form for predictability.
+     * @param string|null $id Block ID. Omit to let the server generate one (recommended). Block IDs must be unique across your organization, not just within a workflow — reusing a custom id like 'block_extract' in more than one workflow fails with 409.
      * @param \Retab\Resource\WorkflowBlockCreateRequestType $type Block type
      * @param string|null $label Display label
      * @param float|null $positionX X position
@@ -96,7 +103,7 @@ class WorkflowBlocks
             'height' => $height,
             'config' => $config,
             'parent_id' => $parentId,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
             path: 'v1/workflows/blocks',
@@ -107,11 +114,109 @@ class WorkflowBlocks
     }
 
     /**
+     * List Block Versions
+     * @param string $workflowId
+     * @param string|null $blockId Filter by stable block ID
+     * @param string|null $workflowVersionId Filter by workflow version ID
+     * @param string|null $before Block version cursor before
+     * @param string|null $after Block version cursor after
+     * @param int|null $limit Maximum number of block versions to return Defaults to 50.
+     * @return \Retab\PaginatedResponse<\Retab\Resource\WorkflowBlockVersion>
+     * @throws \Retab\Exception\RetabException
+     */
+    public function listVersions(
+        string $workflowId,
+        ?string $blockId = null,
+        ?string $workflowVersionId = null,
+        ?string $before = null,
+        ?string $after = null,
+        ?int $limit = null,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\PaginatedResponse {
+        $query = array_filter([
+            'workflow_id' => $workflowId,
+            'block_id' => $blockId,
+            'workflow_version_id' => $workflowVersionId,
+            'before' => $before,
+            'after' => $after,
+            'limit' => $limit,
+        ], fn($v) => $v !== null);
+        return $this->client->requestPage(
+            method: 'GET',
+            path: 'v1/workflows/blocks/versions',
+            query: $query,
+            modelClass: WorkflowBlockVersion::class,
+            options: $options,
+        );
+    }
+
+    /**
+     * Diff Block Versions
+     * @param string $fromBlockVersionId
+     * @param string $toBlockVersionId
+     * @return \Retab\Resource\WorkflowBlockVersionDiff
+     * @throws \Retab\Exception\RetabException
+     */
+    public function listDiff(
+        string $fromBlockVersionId,
+        string $toBlockVersionId,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\WorkflowBlockVersionDiff {
+        $query = [
+            'from_block_version_id' => $fromBlockVersionId,
+            'to_block_version_id' => $toBlockVersionId,
+        ];
+        $response = $this->client->request(
+            method: 'GET',
+            path: 'v1/workflows/blocks/versions/diff',
+            query: $query,
+            options: $options,
+        );
+        return WorkflowBlockVersionDiff::fromArray($response);
+    }
+
+    /**
+     * Get Block Version
+     * @param string $blockVersionId
+     * @return \Retab\Resource\WorkflowBlockVersion
+     * @throws \Retab\Exception\RetabException
+     */
+    public function getVersion(
+        string $blockVersionId,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\WorkflowBlockVersion {
+        $response = $this->client->request(
+            method: 'GET',
+            path: 'v1/workflows/blocks/versions/' . rawurlencode($blockVersionId),
+            options: $options,
+        );
+        return WorkflowBlockVersion::fromArray($response);
+    }
+
+    /**
+     * Restore Block Version
+     * @param string $blockVersionId
+     * @return \Retab\Resource\WorkflowBlock
+     * @throws \Retab\Exception\RetabException
+     */
+    public function createVersionRestore(
+        string $blockVersionId,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\WorkflowBlock {
+        $response = $this->client->request(
+            method: 'POST',
+            path: 'v1/workflows/blocks/versions/' . rawurlencode($blockVersionId) . '/restore',
+            options: $options,
+        );
+        return WorkflowBlock::fromArray($response);
+    }
+
+    /**
      * Get Block
      *
      * Get a single block by ID.
      * @param string $blockId
-     * @param string|null $workflowId Optional disambiguator for legacy duplicate block IDs. Required only when the block id is not unique within the org — in that case the unqualified call returns 409 listing the colliding workflow_ids. Newly-created blocks use server-generated opaque IDs and never need this.
+     * @param string|null $workflowId Disambiguates a block id that is shared by more than one workflow. Required only when the block id is not unique within your organization — otherwise the call returns 409 listing the colliding workflow_ids. Server-generated block IDs are always unique and never need this.
      * @return \Retab\Resource\WorkflowBlock
      * @throws \Retab\Exception\RetabException
      */
@@ -122,7 +227,7 @@ class WorkflowBlocks
     ): \Retab\Resource\WorkflowBlock {
         $query = array_filter([
             'workflow_id' => $workflowId,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'GET',
             path: 'v1/workflows/blocks/' . rawurlencode($blockId),
@@ -147,8 +252,8 @@ class WorkflowBlocks
      * @param float|null $height
      * @param array<string, mixed>|null $config
      * @param string|null $parentId
-     * @param \Retab\Resource\UpdateWorkflowBlockRequestConfigMode|null $configMode How to apply the ``config`` field. 'merge' (default) deep-merges the patch into the existing config with null-as-delete; 'replace' uses the patch as the full new config. Not persisted.
-     * @param string|null $workflowId Optional disambiguator for legacy duplicate block IDs. See ``GET /blocks/{block_id}`` for the full rationale.
+     * @param \Retab\Resource\UpdateWorkflowBlockRequestConfigMode|null $configMode How to apply the `config` field. 'merge' (default) deep-merges the patch into the existing config with null-as-delete; 'replace' uses the patch as the full new config.
+     * @param string|null $workflowId Disambiguates a block id that is shared by more than one workflow. Required only when the block id is not unique within your organization.
      * @return \Retab\Resource\WorkflowBlock
      * @throws \Retab\Exception\RetabException
      */
@@ -174,11 +279,15 @@ class WorkflowBlocks
             'config' => $config,
             'parent_id' => $parentId,
             'config_mode' => $configMode?->value,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
+        $query = array_filter([
+            'workflow_id' => $workflowId,
+        ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'PATCH',
             path: 'v1/workflows/blocks/' . rawurlencode($blockId),
             body: $body,
+            query: $query,
             options: $options,
         );
         return WorkflowBlock::fromArray($response);
@@ -191,7 +300,7 @@ class WorkflowBlocks
      *
      * This also deletes any edges connected to this block.
      * @param string $blockId
-     * @param string|null $workflowId Optional disambiguator for legacy duplicate block IDs. See ``GET /blocks/{block_id}`` for the full rationale.
+     * @param string|null $workflowId Disambiguates a block id that is shared by more than one workflow. Required only when the block id is not unique within your organization.
      * @return void
      * @throws \Retab\Exception\RetabException
      */
@@ -202,12 +311,47 @@ class WorkflowBlocks
     ): void {
         $query = array_filter([
             'workflow_id' => $workflowId,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         $this->client->request(
             method: 'DELETE',
             path: 'v1/workflows/blocks/' . rawurlencode($blockId),
             query: $query,
             options: $options,
         );
+    }
+
+    /**
+     * Validate Block Config
+     *
+     * Validate an assembled block config without mutating the workflow draft.
+     * @param string $blockId
+     * @param array<string, mixed> $config Assembled block config to validate.
+     * @param \Retab\Resource\UpdateWorkflowBlockRequestConfigMode|null $configMode How to apply the config before validation. 'replace' validates the config as the full block config; 'merge' validates the result of merging it into the existing block config.
+     * @param string|null $workflowId Workflow ID to disambiguate legacy duplicate block IDs. Omit for normal server-generated block IDs.
+     * @return \Retab\Resource\ValidateWorkflowBlockConfigResponse
+     * @throws \Retab\Exception\RetabException
+     */
+    public function createBlockValidateConfig(
+        string $blockId,
+        array $config,
+        ?\Retab\Resource\UpdateWorkflowBlockRequestConfigMode $configMode = null,
+        ?string $workflowId = null,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\ValidateWorkflowBlockConfigResponse {
+        $body = array_filter([
+            'config' => $config,
+            'config_mode' => $configMode?->value,
+        ], fn($v) => $v !== null);
+        $query = array_filter([
+            'workflow_id' => $workflowId,
+        ], fn($v) => $v !== null);
+        $response = $this->client->request(
+            method: 'POST',
+            path: 'v1/workflows/blocks/' . rawurlencode($blockId) . '/validate-config',
+            body: $body,
+            query: $query,
+            options: $options,
+        );
+        return ValidateWorkflowBlockConfigResponse::fromArray($response);
     }
 }

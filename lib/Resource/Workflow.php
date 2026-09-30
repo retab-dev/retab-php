@@ -6,17 +6,7 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
-/**
- * Public workflow resource returned by workflow metadata endpoints.
- *
- * This is the API response shape — distinct from the internal storage
- * model (:class:`StoredWorkflow`), which carries persistence-only fields
- * that never appear in API responses. Routes call
- * :func:`serialize_workflow_response` to convert the storage shape into
- * this response shape; constructing this class directly for persistence
- * would drop those storage-only fields silently. The two classes were
- * deliberately renamed to avoid the prior name collision.
- */
+/** A workflow and its current configuration. */
 readonly class Workflow implements \JsonSerializable
 {
     use JsonSerializableTrait;
@@ -30,12 +20,11 @@ readonly class Workflow implements \JsonSerializable
         public ?string $name = null,
         /** Description of the workflow */
         public ?string $description = null,
+        /** Project that owns this workflow. Null only on legacy rows that predate the project backfill. */
+        public ?string $projectId = null,
         /** Published workflow metadata when a published version exists */
         public ?WorkflowPublished $published = null,
-        /** Email trigger allowlist policy */
-        public ?WorkflowEmailTrigger $emailTrigger = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -55,8 +44,8 @@ readonly class Workflow implements \JsonSerializable
             updatedAt: new \DateTimeImmutable($data['updated_at']),
             name: $data['name'] ?? null,
             description: $data['description'] ?? null,
+            projectId: $data['project_id'] ?? null,
             published: isset($data['published']) ? WorkflowPublished::fromArray($data['published']) : null,
-            emailTrigger: isset($data['email_trigger']) ? WorkflowEmailTrigger::fromArray($data['email_trigger']) : null,
         );
     }
 
@@ -69,8 +58,8 @@ readonly class Workflow implements \JsonSerializable
             'updated_at' => $this->updatedAt->format(\DateTimeInterface::RFC3339_EXTENDED),
             'name' => $this->name,
             'description' => $this->description,
+            'project_id' => $this->projectId,
             'published' => $this->published?->toArray(),
-            'email_trigger' => $this->emailTrigger?->toArray(),
         ];
     }
 }

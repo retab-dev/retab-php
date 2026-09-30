@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
+/** An extraction produced by a workflow run, tagged with its artifact `operation` and creation time. */
 readonly class ExtractionWorkflowArtifact implements \JsonSerializable
 {
     use JsonSerializableTrait;
@@ -27,24 +28,25 @@ readonly class ExtractionWorkflowArtifact implements \JsonSerializable
          * @var array<string, mixed>
          */
         public array $output,
-        /** When this artifact was written by the orchestrator. */
-        public \DateTimeImmutable $createdAt,
         /** Number of consensus votes used */
         public ?int $nConsensus = null,
-        /** DPI used to render document images */
-        public ?int $imageResolutionDpi = null,
         /** Free-form instructions supplied with the extraction request. */
         public ?string $instructions = null,
+        /** Lifecycle status. The synchronous path returns 'completed'. Background runs progress pending -> queued -> in_progress -> completed | failed | cancelled. */
+        public ?EditStatus $status = null,
+        /** Error details when a background run fails; null otherwise. Always present so consumers can read it without an existence check. */
+        public ?PrimitiveError $error = null,
         /** Consensus metadata for multi-vote extraction runs */
         public ?ExtractionConsensus $consensus = null,
         /** @var array<string, string>|null */
         public ?array $metadata = null,
         /** Usage information for the extraction */
         public ?RetabUsage $usage = null,
-        /** Artifact operation that determines the backing record type */
+        /** Timestamp when this artifact was created. */
+        public ?\DateTimeImmutable $createdAt = null,
+        /** The operation that produced this artifact */
         public string $operation = 'extraction',
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -55,7 +57,6 @@ readonly class ExtractionWorkflowArtifact implements \JsonSerializable
             'model',
             'json_schema',
             'output',
-            'created_at',
         ] as $__required) {
             if (!array_key_exists($__required, $data)) {
                 throw new \UnexpectedValueException("Missing required field '$__required' for ExtractionWorkflowArtifact::fromArray()");
@@ -67,13 +68,14 @@ readonly class ExtractionWorkflowArtifact implements \JsonSerializable
             model: $data['model'],
             jsonSchema: $data['json_schema'],
             output: $data['output'],
-            createdAt: new \DateTimeImmutable($data['created_at']),
             nConsensus: $data['n_consensus'] ?? null,
-            imageResolutionDpi: $data['image_resolution_dpi'] ?? null,
             instructions: $data['instructions'] ?? null,
+            status: isset($data['status']) ? EditStatus::from($data['status']) : null,
+            error: isset($data['error']) ? PrimitiveError::fromArray($data['error']) : null,
             consensus: isset($data['consensus']) ? ExtractionConsensus::fromArray($data['consensus']) : null,
             metadata: $data['metadata'] ?? null,
             usage: isset($data['usage']) ? RetabUsage::fromArray($data['usage']) : null,
+            createdAt: isset($data['created_at']) ? new \DateTimeImmutable($data['created_at']) : null,
             operation: $data['operation'] ?? 'extraction',
         );
     }
@@ -87,13 +89,14 @@ readonly class ExtractionWorkflowArtifact implements \JsonSerializable
             'model' => $this->model,
             'json_schema' => $this->jsonSchema,
             'output' => $this->output,
-            'created_at' => $this->createdAt->format(\DateTimeInterface::RFC3339_EXTENDED),
             'n_consensus' => $this->nConsensus,
-            'image_resolution_dpi' => $this->imageResolutionDpi,
             'instructions' => $this->instructions,
+            'status' => $this->status?->value,
+            'error' => $this->error?->toArray(),
             'consensus' => $this->consensus?->toArray(),
             'metadata' => $this->metadata,
             'usage' => $this->usage?->toArray(),
+            'created_at' => $this->createdAt?->format(\DateTimeInterface::RFC3339_EXTENDED),
             'operation' => $this->operation,
         ];
     }

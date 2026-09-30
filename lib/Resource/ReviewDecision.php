@@ -6,7 +6,7 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
-/** The one terminal decision recorded against one exact :class:`ReviewVersion`. */
+/** The terminal decision recorded against one review version. */
 readonly class ReviewDecision implements \JsonSerializable
 {
     use JsonSerializableTrait;
@@ -15,10 +15,9 @@ readonly class ReviewDecision implements \JsonSerializable
         public ReviewVerdict $verdict,
         public string $versionId,
         public Actor $author,
-        public ?\DateTimeImmutable $decidedAt = null,
+        public \DateTimeImmutable $createdAt,
         public ?string $reason = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -27,6 +26,7 @@ readonly class ReviewDecision implements \JsonSerializable
             'verdict',
             'version_id',
             'author',
+            'created_at',
         ] as $__required) {
             if (!array_key_exists($__required, $data)) {
                 throw new \UnexpectedValueException("Missing required field '$__required' for ReviewDecision::fromArray()");
@@ -36,7 +36,7 @@ readonly class ReviewDecision implements \JsonSerializable
             verdict: ReviewVerdict::from($data['verdict']),
             versionId: $data['version_id'],
             author: Actor::fromArray($data['author']),
-            decidedAt: isset($data['decided_at']) ? new \DateTimeImmutable($data['decided_at']) : null,
+            createdAt: new \DateTimeImmutable($data['created_at']),
             reason: $data['reason'] ?? null,
         );
     }
@@ -48,7 +48,7 @@ readonly class ReviewDecision implements \JsonSerializable
             'verdict' => $this->verdict->value,
             'version_id' => $this->versionId,
             'author' => $this->author->toArray(),
-            'decided_at' => $this->decidedAt?->format(\DateTimeInterface::RFC3339_EXTENDED),
+            'created_at' => $this->createdAt->format(\DateTimeInterface::RFC3339_EXTENDED),
             'reason' => $this->reason,
         ];
     }

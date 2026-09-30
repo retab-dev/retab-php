@@ -6,19 +6,14 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
-/**
- * Run-scoped per-document experiment result.
- *
- * The storage row is still named ``experiment_jobs`` internally, but the
- * public contract is a result row addressed by ``run_id`` + ``document_id``.
- */
+/** One experiment block execution for a single document, addressed by `experiment_run_id` and `document_id`. */
 readonly class ExperimentResult implements \JsonSerializable
 {
     use JsonSerializableTrait;
 
     public function __construct(
         public string $id,
-        public string $runId,
+        public string $experimentRunId,
         public string $experimentId,
         public string $documentId,
         public PendingWorkflowExperimentResult|QueuedWorkflowExperimentResult|RunningWorkflowExperimentResult|CompletedWorkflowExperimentResult|ErrorWorkflowExperimentResult|CancelledWorkflowExperimentResult $lifecycle,
@@ -26,18 +21,18 @@ readonly class ExperimentResult implements \JsonSerializable
         public ReviewBlockType $blockType,
         /** @var array<string, \Retab\Resource\JsonHandleInput|\Retab\Resource\FileHandleInput>|null */
         public ?array $handleInputs = null,
+        /** @var array<string, \Retab\Resource\JsonHandleInput|\Retab\Resource\FileHandleInput>|null */
+        public ?array $handleOutputs = null,
         public ?StepArtifactRef $artifact = null,
         public ?int $attempt = null,
-        public ?bool $isPlaceholder = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
         foreach ([
             'id',
-            'run_id',
+            'experiment_run_id',
             'experiment_id',
             'document_id',
             'lifecycle',
@@ -50,16 +45,18 @@ readonly class ExperimentResult implements \JsonSerializable
         }
         return new self(
             id: $data['id'],
-            runId: $data['run_id'],
+            experimentRunId: $data['experiment_run_id'],
             experimentId: $data['experiment_id'],
             documentId: $data['document_id'],
-            lifecycle: match ($data['lifecycle']['status'] ?? null) { 'cancelled' => CancelledWorkflowExperimentResult::fromArray($data['lifecycle']), 'completed' => CompletedWorkflowExperimentResult::fromArray($data['lifecycle']), 'error' => ErrorWorkflowExperimentResult::fromArray($data['lifecycle']), 'pending' => PendingWorkflowExperimentResult::fromArray($data['lifecycle']), 'queued' => QueuedWorkflowExperimentResult::fromArray($data['lifecycle']), 'running' => RunningWorkflowExperimentResult::fromArray($data['lifecycle']), default => throw new \UnexpectedValueException(sprintf('Unknown status: %s', json_encode($data['lifecycle']['status'] ?? null))) },
+            lifecycle: match ($data['lifecycle']['status'] ?? null) {
+                'cancelled' => CancelledWorkflowExperimentResult::fromArray($data['lifecycle']), 'completed' => CompletedWorkflowExperimentResult::fromArray($data['lifecycle']), 'error' => ErrorWorkflowExperimentResult::fromArray($data['lifecycle']), 'pending' => PendingWorkflowExperimentResult::fromArray($data['lifecycle']), 'queued' => QueuedWorkflowExperimentResult::fromArray($data['lifecycle']), 'running' => RunningWorkflowExperimentResult::fromArray($data['lifecycle']), default => throw new \UnexpectedValueException(sprintf('Unknown status: %s', json_encode($data['lifecycle']['status'] ?? null))),
+            },
             timing: ExperimentResultTiming::fromArray($data['timing']),
             blockType: ReviewBlockType::from($data['block_type']),
             handleInputs: $data['handle_inputs'] ?? null,
+            handleOutputs: $data['handle_outputs'] ?? null,
             artifact: isset($data['artifact']) ? StepArtifactRef::fromArray($data['artifact']) : null,
             attempt: $data['attempt'] ?? null,
-            isPlaceholder: $data['is_placeholder'] ?? null,
         );
     }
 
@@ -68,16 +65,16 @@ readonly class ExperimentResult implements \JsonSerializable
     {
         return [
             'id' => $this->id,
-            'run_id' => $this->runId,
+            'experiment_run_id' => $this->experimentRunId,
             'experiment_id' => $this->experimentId,
             'document_id' => $this->documentId,
             'lifecycle' => $this->lifecycle->toArray(),
             'timing' => $this->timing->toArray(),
             'block_type' => $this->blockType->value,
             'handle_inputs' => $this->handleInputs,
+            'handle_outputs' => $this->handleOutputs,
             'artifact' => $this->artifact?->toArray(),
             'attempt' => $this->attempt,
-            'is_placeholder' => $this->isPlaceholder,
         ];
     }
 }

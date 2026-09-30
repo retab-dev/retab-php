@@ -6,15 +6,24 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
+/**
+ * Record of a review-gate evaluation during a workflow run.
+ *
+ * Captures the conditions evaluated against the block's output
+ * (`evaluations`), whether the gate required human review
+ * (`requires_human_review`), and, once a reviewer acts, the verdict
+ * (`review_decision`), any notes, whether a revision was requested, and the
+ * reviewer and timestamp.
+ */
 readonly class ReviewEvaluation implements \JsonSerializable
 {
     use JsonSerializableTrait;
 
     public function __construct(
         public string $id,
-        public string $workflowRunId,
+        public string $runId,
         public string $stepId,
-        /** When this artifact was written by the orchestrator. */
+        /** Timestamp when this artifact was created. */
         public \DateTimeImmutable $createdAt,
         /** @var array<\Retab\Resource\ConditionEvaluationResult>|null */
         public ?array $evaluations = null,
@@ -29,17 +38,16 @@ readonly class ReviewEvaluation implements \JsonSerializable
         public ?string $reviewNotes = null,
         public ?bool $requestedRevision = null,
         public ?\DateTimeImmutable $reviewedAt = null,
-        /** Artifact operation that determines the backing record type */
+        /** The operation that produced this artifact */
         public string $operation = 'review_trigger_evaluation',
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
         foreach ([
             'id',
-            'workflow_run_id',
+            'run_id',
             'step_id',
             'created_at',
         ] as $__required) {
@@ -49,10 +57,10 @@ readonly class ReviewEvaluation implements \JsonSerializable
         }
         return new self(
             id: $data['id'],
-            workflowRunId: $data['workflow_run_id'],
+            runId: $data['run_id'],
             stepId: $data['step_id'],
             createdAt: new \DateTimeImmutable($data['created_at']),
-            evaluations: isset($data['evaluations']) ? array_map(fn ($item) => ConditionEvaluationResult::fromArray($item), $data['evaluations']) : null,
+            evaluations: isset($data['evaluations']) ? array_map(fn($item) => ConditionEvaluationResult::fromArray($item), $data['evaluations']) : null,
             selectedHandles: $data['selected_handles'] ?? null,
             matchedBranchId: $data['matched_branch_id'] ?? null,
             matchedConditionIds: $data['matched_condition_ids'] ?? null,
@@ -71,10 +79,10 @@ readonly class ReviewEvaluation implements \JsonSerializable
     {
         return [
             'id' => $this->id,
-            'workflow_run_id' => $this->workflowRunId,
+            'run_id' => $this->runId,
             'step_id' => $this->stepId,
             'created_at' => $this->createdAt->format(\DateTimeInterface::RFC3339_EXTENDED),
-            'evaluations' => $this->evaluations !== null ? array_map(fn ($item) => $item->toArray(), $this->evaluations) : null,
+            'evaluations' => $this->evaluations !== null ? array_map(fn($item) => $item->toArray(), $this->evaluations) : null,
             'selected_handles' => $this->selectedHandles,
             'matched_branch_id' => $this->matchedBranchId,
             'matched_condition_ids' => $this->matchedConditionIds,

@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
+/** A parse result: the per-page and full-document text extracted from a document. */
 readonly class Parse implements \JsonSerializable
 {
     use JsonSerializableTrait;
@@ -19,17 +20,18 @@ readonly class Parse implements \JsonSerializable
         public string $model,
         /** Format used to render tables extracted from the document */
         public TableParsingFormat $tableParsingFormat,
-        /** DPI used when rasterizing pages for the parser */
-        public int $imageResolutionDpi,
         /** The parsed document content */
         public ParseOutput $output,
         /** Free-form instructions supplied with the parse request. */
         public ?string $instructions = null,
+        /** Lifecycle status. The synchronous path returns 'completed'. Background runs progress pending -> queued -> in_progress -> completed | failed | cancelled. */
+        public ?EditStatus $status = null,
+        /** Error details when a background run fails; null otherwise. Always present so consumers can read it without an existence check. */
+        public ?PrimitiveError $error = null,
         /** Usage information for the parse operation */
         public ?RetabUsage $usage = null,
         public ?\DateTimeImmutable $createdAt = null,
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -39,7 +41,6 @@ readonly class Parse implements \JsonSerializable
             'file',
             'model',
             'table_parsing_format',
-            'image_resolution_dpi',
             'output',
         ] as $__required) {
             if (!array_key_exists($__required, $data)) {
@@ -51,9 +52,10 @@ readonly class Parse implements \JsonSerializable
             file: FileRef::fromArray($data['file']),
             model: $data['model'],
             tableParsingFormat: TableParsingFormat::from($data['table_parsing_format']),
-            imageResolutionDpi: $data['image_resolution_dpi'],
             output: ParseOutput::fromArray($data['output']),
             instructions: $data['instructions'] ?? null,
+            status: isset($data['status']) ? EditStatus::from($data['status']) : null,
+            error: isset($data['error']) ? PrimitiveError::fromArray($data['error']) : null,
             usage: isset($data['usage']) ? RetabUsage::fromArray($data['usage']) : null,
             createdAt: isset($data['created_at']) ? new \DateTimeImmutable($data['created_at']) : null,
         );
@@ -67,9 +69,10 @@ readonly class Parse implements \JsonSerializable
             'file' => $this->file->toArray(),
             'model' => $this->model,
             'table_parsing_format' => $this->tableParsingFormat->value,
-            'image_resolution_dpi' => $this->imageResolutionDpi,
             'output' => $this->output->toArray(),
             'instructions' => $this->instructions,
+            'status' => $this->status?->value,
+            'error' => $this->error?->toArray(),
             'usage' => $this->usage?->toArray(),
             'created_at' => $this->createdAt?->format(\DateTimeInterface::RFC3339_EXTENDED),
         ];

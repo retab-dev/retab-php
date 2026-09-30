@@ -7,13 +7,20 @@
   },
   "model": "test_model",
   "table_parsing_format": "markdown",
-  "image_resolution_dpi": 1,
   "instructions": "test_instructions",
   "output": {
     "pages": [
       "test_pages"
     ],
     "text": "test_text"
+  },
+  "status": "pending",
+  "error": {
+    "code": "test_code",
+    "message": "test_message",
+    "details": {
+      "key": {}
+    }
   },
   "usage": {
     "credits": 1

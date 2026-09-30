@@ -6,32 +6,36 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
+/**
+ * Record of an API-call block's outbound HTTP request during a run.
+ *
+ * Lists each request `attempts` made (including retries) and any `error`
+ * if the call ultimately failed.
+ */
 readonly class ApiCallInvocation implements \JsonSerializable
 {
     use JsonSerializableTrait;
 
     public function __construct(
         public string $id,
-        public string $workflowRunId,
+        public string $runId,
         public string $stepId,
-        /** When this artifact was written by the orchestrator. */
-        public \DateTimeImmutable $createdAt,
         /** @var array<\Retab\Resource\ApiCallAttempt>|null */
         public ?array $attempts = null,
         public ?ErrorDetails $error = null,
-        /** Artifact operation that determines the backing record type */
+        /** Timestamp when this artifact was created. */
+        public ?\DateTimeImmutable $createdAt = null,
+        /** The operation that produced this artifact */
         public string $operation = 'api_call_invocation',
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
         foreach ([
             'id',
-            'workflow_run_id',
+            'run_id',
             'step_id',
-            'created_at',
         ] as $__required) {
             if (!array_key_exists($__required, $data)) {
                 throw new \UnexpectedValueException("Missing required field '$__required' for ApiCallInvocation::fromArray()");
@@ -39,11 +43,11 @@ readonly class ApiCallInvocation implements \JsonSerializable
         }
         return new self(
             id: $data['id'],
-            workflowRunId: $data['workflow_run_id'],
+            runId: $data['run_id'],
             stepId: $data['step_id'],
-            createdAt: new \DateTimeImmutable($data['created_at']),
-            attempts: isset($data['attempts']) ? array_map(fn ($item) => ApiCallAttempt::fromArray($item), $data['attempts']) : null,
+            attempts: isset($data['attempts']) ? array_map(fn($item) => ApiCallAttempt::fromArray($item), $data['attempts']) : null,
             error: isset($data['error']) ? ErrorDetails::fromArray($data['error']) : null,
+            createdAt: isset($data['created_at']) ? new \DateTimeImmutable($data['created_at']) : null,
             operation: $data['operation'] ?? 'api_call_invocation',
         );
     }
@@ -53,11 +57,11 @@ readonly class ApiCallInvocation implements \JsonSerializable
     {
         return [
             'id' => $this->id,
-            'workflow_run_id' => $this->workflowRunId,
+            'run_id' => $this->runId,
             'step_id' => $this->stepId,
-            'created_at' => $this->createdAt->format(\DateTimeInterface::RFC3339_EXTENDED),
-            'attempts' => $this->attempts !== null ? array_map(fn ($item) => $item->toArray(), $this->attempts) : null,
+            'attempts' => $this->attempts !== null ? array_map(fn($item) => $item->toArray(), $this->attempts) : null,
             'error' => $this->error?->toArray(),
+            'created_at' => $this->createdAt?->format(\DateTimeInterface::RFC3339_EXTENDED),
             'operation' => $this->operation,
         ];
     }

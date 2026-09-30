@@ -13,7 +13,7 @@ readonly class PartitionRequest implements \JsonSerializable
 
     public function __construct(
         /** The document to partition */
-        public MimeData|FileRef $document,
+        public MimeData $document,
         /** The key to partition the document by */
         public string $key,
         /** Instructions describing how the document should be partitioned */
@@ -26,8 +26,9 @@ readonly class PartitionRequest implements \JsonSerializable
         public ?bool $allowOverlap = null,
         /** If true, skip the LLM cache and force a fresh completion */
         public ?bool $bustCache = null,
-    ) {
-    }
+        /** If true, run asynchronously: returns immediately with status 'queued' and an empty output. Poll GET /v1/<primitive>/{id} until status is terminal. Mutually exclusive with stream. */
+        public ?bool $background = null,
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -42,13 +43,14 @@ readonly class PartitionRequest implements \JsonSerializable
             }
         }
         return new self(
-            document: $data['document'],
+            document: MimeData::fromArray($data['document']),
             key: $data['key'],
             instructions: $data['instructions'],
             model: $data['model'] ?? null,
             nConsensus: $data['n_consensus'] ?? null,
             allowOverlap: $data['allow_overlap'] ?? null,
             bustCache: $data['bust_cache'] ?? null,
+            background: $data['background'] ?? null,
         );
     }
 
@@ -63,6 +65,7 @@ readonly class PartitionRequest implements \JsonSerializable
             'n_consensus' => $this->nConsensus,
             'allow_overlap' => $this->allowOverlap,
             'bust_cache' => $this->bustCache,
+            'background' => $this->background,
         ];
     }
 }

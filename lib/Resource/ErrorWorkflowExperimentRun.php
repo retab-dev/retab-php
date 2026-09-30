@@ -9,7 +9,7 @@ namespace Retab\Resource;
 /**
  * The experiment run failed.
  *
- * Carries a human-readable ``message`` and a structured ``details`` envelope
+ * Carries a human-readable `message` and a structured `details` envelope
  * consumers can branch on instead of parsing free text.
  */
 readonly class ErrorWorkflowExperimentRun implements \JsonSerializable
@@ -22,8 +22,7 @@ readonly class ErrorWorkflowExperimentRun implements \JsonSerializable
         /** Structured error context including stack trace */
         public ?ErrorDetails $details = null,
         public string $status = 'error',
-    ) {
-    }
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self

@@ -6,61 +6,45 @@ declare(strict_types=1);
 
 namespace Retab\Service;
 
+use Retab\Resource\ApiCallInvocation;
+use Retab\Resource\ClassificationWorkflowArtifact;
+use Retab\Resource\ConditionalEvaluation;
+use Retab\Resource\EditWorkflowArtifact;
 use Retab\Resource\ExtractionWorkflowArtifact;
+use Retab\Resource\FunctionInvocation;
+use Retab\Resource\ParseWorkflowArtifact;
+use Retab\Resource\PartitionWorkflowArtifact;
+use Retab\Resource\ReviewEvaluation;
+use Retab\Resource\SplitWorkflowArtifact;
+use Retab\Resource\WhileLoopTermination;
 use Retab\Resource\WorkflowArtifact;
 
 class WorkflowArtifacts
 {
     public function __construct(
         private readonly \Retab\HttpClient $client,
-    ) {
-    }
-
-    /**
-     * Get Workflow Artifact By Id
-     *
-     * Get one workflow artifact by id alone.
-     *
-     * The operation is derived from the id prefix
-     * (``extr_…`` → extraction, ``clss_…`` → classification, etc.). This is
-     * the flat-resource shape — callers do not need to know which collection
-     * backs the id.
-     * @param string $artifactId
-     * @return \Retab\Resource\ExtractionWorkflowArtifact
-     * @throws \Retab\Exception\RetabException
-     */
-    public function get(
-        string $artifactId,
-        ?\Retab\RequestOptions $options = null,
-    ): \Retab\Resource\ExtractionWorkflowArtifact {
-        $response = $this->client->request(
-            method: 'GET',
-            path: 'v1/workflows/artifacts/' . rawurlencode($artifactId),
-            options: $options,
-        );
-        return ExtractionWorkflowArtifact::fromArray($response);
-    }
+    ) {}
 
     /**
      * List Workflow Artifacts
      *
      * List artifacts produced by a workflow run.
      *
-     * Paginated by the producing step's ``step_id`` (sorted by ``started_at``
-     * ascending). Pass ``after`` for the next page, ``before`` for the previous
-     * page — mutually exclusive. ``step_id`` short-circuits pagination and
+     * Paginated by the producing step's `step_id` (sorted by `started_at`
+     * ascending). Pass `after` for the next page, `before` for the previous
+     * page — mutually exclusive. `step_id` short-circuits pagination and
      * returns the single attached artifact.
      *
-     * Filters: provide either ``run_id`` (list all artifacts in a run) or
-     * ``step_id`` (single-step lookup). When both are absent the request is
+     * Filters: provide either `run_id` (list all artifacts in a run) or
+     * `step_id` (single-step lookup). When both are absent the request is
      * rejected with 400.
-     * @param string|null $runId Workflow run ID whose artifacts should be listed. Required unless ``step_id`` is provided.
+     * @param string|null $runId Workflow run ID whose artifacts should be listed. Required unless `step_id` is provided.
      * @param \Retab\Resource\StepArtifactRefOperation|null $operation Optional artifact operation filter
      * @param string|null $blockId Optional block_id or step_id filter
-     * @param string|null $stepId Optional step id filter. When provided, returns the single artifact attached to that step (or an empty list if the step has no artifact). ``run_id`` is not required when ``step_id`` is set — it is resolved from the step record.
-     * @param string|null $before Step id cursor: return the page before this step (mutually exclusive with ``after``). Ignored when ``step_id`` is set.
-     * @param string|null $after Step id cursor: return the page after this step (mutually exclusive with ``before``). Ignored when ``step_id`` is set.
-     * @param int|null $limit Maximum number of artifacts to return per page (1-200). Ignored when ``step_id`` is set (that path returns the single attached artifact). Defaults to 100.
+     * @param string|null $stepId Optional step id filter. When provided, returns the single artifact attached to that step (or an empty list if the step has no artifact). `run_id` is not required when `step_id` is set — it is resolved from the step record.
+     * @param string|null $before Step id cursor: return the page before this step (mutually exclusive with `after`). Ignored when `step_id` is set.
+     * @param string|null $after Step id cursor: return the page after this step (mutually exclusive with `before`). Ignored when `step_id` is set.
+     * @param int|null $limit Maximum number of artifacts to return per page (1-200). Ignored when `step_id` is set (that path returns the single attached artifact). Defaults to 100.
      * @return \Retab\PaginatedResponse<\Retab\Resource\WorkflowArtifact>
      * @throws \Retab\Exception\RetabException
      */
@@ -82,7 +66,7 @@ class WorkflowArtifacts
             'before' => $before,
             'after' => $after,
             'limit' => $limit,
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
         return $this->client->requestPage(
             method: 'GET',
             path: 'v1/workflows/artifacts',
@@ -90,5 +74,30 @@ class WorkflowArtifacts
             modelClass: WorkflowArtifact::class,
             options: $options,
         );
+    }
+
+    /**
+     * Get Workflow Artifact By Id
+     *
+     * Get one workflow artifact by id.
+     *
+     * The artifact kind is derived from the id prefix (`extr_…` → extraction,
+     * `clss_…` → classification, etc.).
+     * @param string $artifactId
+     * @return \Retab\Resource\ExtractionWorkflowArtifact|\Retab\Resource\SplitWorkflowArtifact|\Retab\Resource\ClassificationWorkflowArtifact|\Retab\Resource\ParseWorkflowArtifact|\Retab\Resource\EditWorkflowArtifact|\Retab\Resource\PartitionWorkflowArtifact|\Retab\Resource\ConditionalEvaluation|\Retab\Resource\ReviewEvaluation|\Retab\Resource\WhileLoopTermination|\Retab\Resource\ApiCallInvocation|\Retab\Resource\FunctionInvocation
+     * @throws \Retab\Exception\RetabException
+     */
+    public function get(
+        string $artifactId,
+        ?\Retab\RequestOptions $options = null,
+    ): \Retab\Resource\ExtractionWorkflowArtifact|\Retab\Resource\SplitWorkflowArtifact|\Retab\Resource\ClassificationWorkflowArtifact|\Retab\Resource\ParseWorkflowArtifact|\Retab\Resource\EditWorkflowArtifact|\Retab\Resource\PartitionWorkflowArtifact|\Retab\Resource\ConditionalEvaluation|\Retab\Resource\ReviewEvaluation|\Retab\Resource\WhileLoopTermination|\Retab\Resource\ApiCallInvocation|\Retab\Resource\FunctionInvocation {
+        $response = $this->client->request(
+            method: 'GET',
+            path: 'v1/workflows/artifacts/' . rawurlencode($artifactId),
+            options: $options,
+        );
+        return match ($response['operation'] ?? null) {
+            'extraction' => ExtractionWorkflowArtifact::fromArray($response), 'split' => SplitWorkflowArtifact::fromArray($response), 'classification' => ClassificationWorkflowArtifact::fromArray($response), 'parse' => ParseWorkflowArtifact::fromArray($response), 'edit' => EditWorkflowArtifact::fromArray($response), 'partition' => PartitionWorkflowArtifact::fromArray($response), 'conditional_evaluation' => ConditionalEvaluation::fromArray($response), 'review_trigger_evaluation' => ReviewEvaluation::fromArray($response), 'while_loop_termination' => WhileLoopTermination::fromArray($response), 'api_call_invocation' => ApiCallInvocation::fromArray($response), 'function_invocation' => FunctionInvocation::fromArray($response), default => throw new \UnexpectedValueException(sprintf('Unknown operation: %s', json_encode($response['operation'] ?? null))),
+        };
     }
 }

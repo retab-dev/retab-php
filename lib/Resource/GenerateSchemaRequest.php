@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
+/** Body to generate a JSON schema from example `documents`, optionally steered by `instructions`. */
 readonly class GenerateSchemaRequest implements \JsonSerializable
 {
     use JsonSerializableTrait;
@@ -14,13 +15,10 @@ readonly class GenerateSchemaRequest implements \JsonSerializable
         /** @var array<\Retab\Resource\MimeData> */
         public array $documents,
         public ?string $model = null,
-        public ?GenerateSchemaRequestReasoningEffort $reasoningEffort = null,
         public ?string $instructions = null,
-        /** Resolution of the image sent to the LLM */
-        public ?int $imageResolutionDpi = null,
-        public ?bool $stream = null,
-    ) {
-    }
+        /** If true, run asynchronously: returns immediately with status 'queued'. Poll GET /v1/schemas/generate/{schema_generation_id} until status is terminal. */
+        public ?bool $background = null,
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
@@ -33,12 +31,10 @@ readonly class GenerateSchemaRequest implements \JsonSerializable
             }
         }
         return new self(
-            documents: array_map(fn ($item) => MimeData::fromArray($item), $data['documents']),
+            documents: array_map(fn($item) => MimeData::fromArray($item), $data['documents']),
             model: $data['model'] ?? null,
-            reasoningEffort: isset($data['reasoning_effort']) ? GenerateSchemaRequestReasoningEffort::from($data['reasoning_effort']) : null,
             instructions: $data['instructions'] ?? null,
-            imageResolutionDpi: $data['image_resolution_dpi'] ?? null,
-            stream: $data['stream'] ?? null,
+            background: $data['background'] ?? null,
         );
     }
 
@@ -46,12 +42,10 @@ readonly class GenerateSchemaRequest implements \JsonSerializable
     public function toArray(): array
     {
         return [
-            'documents' => array_map(fn ($item) => $item->toArray(), $this->documents),
+            'documents' => array_map(fn($item) => $item->toArray(), $this->documents),
             'model' => $this->model,
-            'reasoning_effort' => $this->reasoningEffort?->value,
             'instructions' => $this->instructions,
-            'image_resolution_dpi' => $this->imageResolutionDpi,
-            'stream' => $this->stream,
+            'background' => $this->background,
         ];
     }
 }

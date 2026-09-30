@@ -6,19 +6,49 @@ declare(strict_types=1);
 
 namespace Retab\Resource;
 
-/** Request body for POST /v1/workflows/runs. Use the fresh-run shape or the restart shape. */
+/** Create a new workflow run from a workflow id, an optional version selector, and optional inputs. */
 readonly class CreateWorkflowRunRequest implements \JsonSerializable
 {
     use JsonSerializableTrait;
 
     public function __construct(
-    ) {
-    }
+        /** Workflow id for the fresh run. */
+        public string $workflowId,
+        /**
+         * Mapping of start_document block IDs to their input documents.
+         * @var array<string, \Retab\Resource\MimeData>|null
+         */
+        public ?array $documents = null,
+        /**
+         * Mapping of start-json block IDs to their input JSON data.
+         * @var array<string, mixed>|null
+         */
+        public ?array $jsonInputs = null,
+        /** Workflow version to run: 'production', 'draft', or a pinned version id like 'ver_...'. Only valid for fresh-run creation. */
+        public ?string $version = null,
+        /**
+         * User-defined metadata to associate with this workflow run.
+         * @var array<string, string>|null
+         */
+        public ?array $metadata = null,
+    ) {}
 
     /** @param array<string, mixed> $data */
     public static function fromArray(array $data): self
     {
+        foreach ([
+            'workflow_id',
+        ] as $__required) {
+            if (!array_key_exists($__required, $data)) {
+                throw new \UnexpectedValueException("Missing required field '$__required' for CreateWorkflowRunRequest::fromArray()");
+            }
+        }
         return new self(
+            workflowId: $data['workflow_id'],
+            documents: $data['documents'] ?? null,
+            jsonInputs: $data['json_inputs'] ?? null,
+            version: $data['version'] ?? null,
+            metadata: $data['metadata'] ?? null,
         );
     }
 
@@ -26,6 +56,11 @@ readonly class CreateWorkflowRunRequest implements \JsonSerializable
     public function toArray(): array
     {
         return [
+            'workflow_id' => $this->workflowId,
+            'documents' => $this->documents,
+            'json_inputs' => $this->jsonInputs,
+            'version' => $this->version,
+            'metadata' => $this->metadata,
         ];
     }
 }

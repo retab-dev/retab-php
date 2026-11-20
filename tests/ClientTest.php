@@ -6,13 +6,17 @@ declare(strict_types=1);
 
 namespace Tests;
 
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
+use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\RequestInterface;
 use Retab\Client;
+use Retab\Exception\RetabException;
+use Retab\HttpClient;
 
 class ClientTest extends TestCase
 {
@@ -69,5 +73,139 @@ class ClientTest extends TestCase
         $this->assertCount(2, $requests);
         $this->assertSame('/v1/workflows/blocks', $requests[0]->getUri()->getPath());
         $this->assertSame('/v1/workflows/runs', $requests[1]->getUri()->getPath());
+    }
+
+    public function testClientErrorsAreSentOnce(): void
+    {
+        foreach ([408, 409, 422] as $status) {
+            $requests = [];
+            $sleeps = [];
+            $http = $this->retryingHttpClient([
+                new Response($status, ['Content-Type' => 'application/json'], '{"detail":"final"}'),
+                new Response(200, ['Content-Type' => 'application/json'], '{"ok":true}'),
+            ], $requests, $sleeps);
+
+            try {
+                $http->request('POST', '/v1/extractions', ['model' => 'retab-large']);
+                $this->fail("a {$status} must throw");
+            } catch (RetabException $error) {
+                $this->assertSame($status, $error->statusCode);
+            }
+            $this->assertCount(1, $requests, "status {$status}");
+            $this->assertSame([], $sleeps, "status {$status}");
+        }
+    }
+
+    public function testRetryableStatusesAreSentAgain(): void
+    {
+        foreach ([429, 500, 503] as $status) {
+            $requests = [];
+            $sleeps = [];
+            $http = $this->retryingHttpClient([
+                new Response($status, ['Content-Type' => 'application/json'], '{"detail":"try again"}'),
+                new Response(200, ['Content-Type' => 'application/json'], '{"ok":true}'),
+            ], $requests, $sleeps);
+
+            $this->assertSame(['ok' => true], $http->request('POST', '/v1/extractions', ['model' => 'retab-large']));
+            $this->assertCount(2, $requests, "status {$status}");
+            $this->assertCount(1, $sleeps, "status {$status}");
+        }
+    }
+
+    public function testPostWithoutAnAnswerIsSentOnce(): void
+    {
+        $requests = [];
+        $sleeps = [];
+        $http = $this->retryingHttpClient([
+            new ConnectException('Operation timed out', new Request('POST', 'v1/extractions')),
+            new Response(200, ['Content-Type' => 'application/json'], '{"ok":true}'),
+        ], $requests, $sleeps);
+
+        try {
+            $http->request('POST', '/v1/extractions', ['model' => 'retab-large']);
+            $this->fail('a POST without an answer must throw');
+        } catch (RetabException $error) {
+            $this->assertNull($error->statusCode);
+        }
+        $this->assertCount(1, $requests);
+        $this->assertSame([], $sleeps);
+    }
+
+    public function testGetWithoutAnAnswerIsSentAgain(): void
+    {
+        $requests = [];
+        $sleeps = [];
+        $http = $this->retryingHttpClient([
+            new ConnectException('Could not resolve host', new Request('GET', 'v1/workflows')),
+            new Response(200, ['Content-Type' => 'application/json'], '{"ok":true}'),
+        ], $requests, $sleeps);
+
+        $this->assertSame(['ok' => true], $http->request('GET', '/v1/workflows'));
+        $this->assertCount(2, $requests);
+        $this->assertCount(1, $sleeps);
+    }
+
+    public function testRetriesWaitAnExponentialJitteredDelay(): void
+    {
+        $requests = [];
+        $sleeps = [];
+        $http = $this->retryingHttpClient([
+            new Response(503, ['Content-Type' => 'application/json'], '{"detail":"try again"}'),
+            new Response(503, ['Content-Type' => 'application/json'], '{"detail":"try again"}'),
+            new Response(503, ['Content-Type' => 'application/json'], '{"detail":"try again"}'),
+            new Response(503, ['Content-Type' => 'application/json'], '{"detail":"try again"}'),
+        ], $requests, $sleeps);
+
+        try {
+            $http->request('POST', '/v1/extractions', ['model' => 'retab-large']);
+            $this->fail('a 503 after the last retry must throw');
+        } catch (RetabException $error) {
+            $this->assertSame(503, $error->statusCode);
+        }
+        $this->assertCount(4, $requests);
+        $this->assertCount(3, $sleeps);
+        foreach ($sleeps as $retry => $microseconds) {
+            $this->assertGreaterThanOrEqual(0, $microseconds, "retry {$retry}");
+            $this->assertLessThanOrEqual(1_000_000 * 2 ** $retry, $microseconds, "retry {$retry}");
+        }
+    }
+
+    public function testRetryDelayIsBetweenZeroAndTwoToTheRetrySeconds(): void
+    {
+        foreach ([0, 1, 2] as $retry) {
+            $longest = 0;
+            for ($draw = 0; $draw < 200; $draw++) {
+                $delay = HttpClient::retryDelayMicroseconds($retry);
+                $this->assertGreaterThanOrEqual(0, $delay);
+                $this->assertLessThanOrEqual(1_000_000 * 2 ** $retry, $delay);
+                $longest = max($longest, $delay);
+            }
+            // 200 draws below half the bound happen with probability 2^-200.
+            $this->assertGreaterThan(500_000 * 2 ** $retry, $longest, "retry {$retry}");
+        }
+    }
+
+    /**
+     * @param list<mixed> $queue
+     * @param list<RequestInterface> $requests
+     * @param list<int> $sleeps the waits before each retry, in microseconds
+     */
+    private function retryingHttpClient(array $queue, array &$requests, array &$sleeps): HttpClient
+    {
+        $stack = HandlerStack::create(new MockHandler($queue));
+        $stack->push(Middleware::tap(function (RequestInterface $request) use (&$requests) {
+            $requests[] = $request;
+        }));
+
+        return new HttpClient(
+            apiKey: 'test-key',
+            clientId: null,
+            baseUrl: 'http://localhost:4000',
+            maxRetries: 3,
+            handler: $stack,
+            sleep: function (int $microseconds) use (&$sleeps): void {
+                $sleeps[] = $microseconds;
+            },
+        );
     }
 }

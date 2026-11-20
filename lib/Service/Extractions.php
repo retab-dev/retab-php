@@ -103,6 +103,7 @@ class Extractions
      * @param bool|null $background If true, run asynchronously: returns immediately with status 'queued' and an empty output. Poll GET /v1/<primitive>/{id} until status is terminal. Mutually exclusive with stream.
      * @param bool|null $deepExtraction Optimizes for accuracy over latency in documents with very large arrays.
      * @param \Retab\Resource\SourceOptions|null $sources Automatic source computation. Omission defaults to located; cited must be requested explicitly.
+     * @param bool|null $agenticExtraction Agentic extraction for long documents with large repeated arrays: an agent reads the document, writes and runs extraction code in a sandbox, and submits an output checked against the schema. Accepts every document type extraction accepts; images and scanned pages are read with OCR. Requires model retab-large, n_consensus 1, and no instructions or additional_messages; not supported with stream=true or on POST /v1/extractions/stream. Runs the standard deep extraction instead where agentic extraction is not available (including when your organization already has too many agentic extractions running at once), when the schema has no top-level array of objects, when it does not apply to the document (for example a short document), or when it cannot finish. Once the agent takes the request, HTML, MHTML, audio and emails without paged attachments are counted and billed like text files, one page per 3,000 characters, even if the request then falls back. A request the agent does not take (for example where agentic extraction is not available, or when the schema has no top-level array of objects), and a background run that times out and is run again, are counted and billed like any standard deep extraction, which counts each of those documents as one page.
      * @return \Retab\Resource\Extraction
      * @throws \Retab\Exception\RetabException
      */
@@ -119,6 +120,7 @@ class Extractions
         ?bool $background = null,
         ?bool $deepExtraction = null,
         ?\Retab\Resource\SourceOptions $sources = null,
+        ?bool $agenticExtraction = null,
         ?\Retab\RequestOptions $options = null,
     ): \Retab\Resource\Extraction {
         $document = \Retab\Resource\MimeDataCoerce::coerce($document, $this->client);
@@ -135,6 +137,7 @@ class Extractions
             'background' => $background,
             'deep_extraction' => $deepExtraction,
             'sources' => $sources,
+            'agentic_extraction' => $agenticExtraction,
         ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',
@@ -161,6 +164,7 @@ class Extractions
      * @param bool|null $background If true, run asynchronously: returns immediately with status 'queued' and an empty output. Poll GET /v1/<primitive>/{id} until status is terminal. Mutually exclusive with stream.
      * @param bool|null $deepExtraction Optimizes for accuracy over latency in documents with very large arrays.
      * @param \Retab\Resource\SourceOptions|null $sources Automatic source computation. Omission defaults to located; cited must be requested explicitly.
+     * @param bool|null $agenticExtraction Agentic extraction for long documents with large repeated arrays: an agent reads the document, writes and runs extraction code in a sandbox, and submits an output checked against the schema. Accepts every document type extraction accepts; images and scanned pages are read with OCR. Requires model retab-large, n_consensus 1, and no instructions or additional_messages; not supported with stream=true or on POST /v1/extractions/stream. Runs the standard deep extraction instead where agentic extraction is not available (including when your organization already has too many agentic extractions running at once), when the schema has no top-level array of objects, when it does not apply to the document (for example a short document), or when it cannot finish. Once the agent takes the request, HTML, MHTML, audio and emails without paged attachments are counted and billed like text files, one page per 3,000 characters, even if the request then falls back. A request the agent does not take (for example where agentic extraction is not available, or when the schema has no top-level array of objects), and a background run that times out and is run again, are counted and billed like any standard deep extraction, which counts each of those documents as one page.
      * @return mixed
      * @throws \Retab\Exception\RetabException
      */
@@ -177,6 +181,7 @@ class Extractions
         ?bool $background = null,
         ?bool $deepExtraction = null,
         ?\Retab\Resource\SourceOptions $sources = null,
+        ?bool $agenticExtraction = null,
         ?\Retab\RequestOptions $options = null,
     ): mixed {
         $document = \Retab\Resource\MimeDataCoerce::coerce($document, $this->client);
@@ -193,6 +198,7 @@ class Extractions
             'background' => $background,
             'deep_extraction' => $deepExtraction,
             'sources' => $sources,
+            'agentic_extraction' => $agenticExtraction,
         ], fn($v) => $v !== null);
         $response = $this->client->request(
             method: 'POST',

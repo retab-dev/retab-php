@@ -16,6 +16,13 @@ class HttpClient
 {
     private GuzzleClient $client;
 
+    /** @var \Closure(int): void */
+    private readonly \Closure $sleep;
+
+    /**
+     * @param (\Closure(int): void)|null $sleep waits the given number of
+     *     microseconds before a retry; usleep when null
+     */
     public function __construct(
         private readonly string $apiKey,
         private readonly ?string $clientId,
@@ -24,7 +31,11 @@ class HttpClient
         private readonly int $maxRetries = 3,
         ?HandlerStack $handler = null,
         private readonly ?string $userAgent = null,
+        ?\Closure $sleep = null,
     ) {
+        $this->sleep = $sleep ?? static function (int $microseconds): void {
+            usleep($microseconds);
+        };
         $config = [
             'base_uri' => rtrim($baseUrl, '/') . '/',
             'timeout' => $timeout,
@@ -78,7 +89,7 @@ class HttpClient
                 /** @var array<string, mixed> $decoded */
                 return $decoded;
             } catch (GuzzleException $error) {
-                if ($attempt >= $this->maxRetries) {
+                if ($attempt >= $this->maxRetries || !self::isRetryable($error, $method)) {
                     // Surface the typed subclass (RetabNotFoundException,
                     // RetabAuthenticationException, ...) for HTTP responses
                     // so consumers can catch by class. Non-HTTP failures
@@ -96,9 +107,37 @@ class HttpClient
                     }
                     throw new RetabException($error->getMessage(), null, null, $error);
                 }
+                ($this->sleep)(self::retryDelayMicroseconds($attempt));
                 $attempt++;
             }
         }
+    }
+
+    /**
+     * How long to wait before retry $retry (from 0), in microseconds: a
+     * random time between 0 and 2^$retry seconds, the Python SDK's
+     * backoff.expo with full jitter. The exponent stops at 30 so the bound
+     * stays an int.
+     */
+    public static function retryDelayMicroseconds(int $retry): int
+    {
+        return random_int(0, 1_000_000 * 2 ** min($retry, 30));
+    }
+
+    /**
+     * Whether a failed request is sent again: on an HTTP 429 or 5xx answer,
+     * the statuses the Python SDK retries. Any other 4xx is final. A failure
+     * without an HTTP answer is retried for GET and HEAD only: Guzzle reports
+     * a read timeout of a request the server received as a ConnectException,
+     * so a POST may already have run.
+     */
+    private static function isRetryable(GuzzleException $error, string $method): bool
+    {
+        if ($error instanceof BadResponseException) {
+            $status = $error->getResponse()->getStatusCode();
+            return $status === 429 || $status >= 500;
+        }
+        return in_array(strtoupper($method), ['GET', 'HEAD'], true);
     }
 
     /**
